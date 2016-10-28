@@ -29,9 +29,9 @@ var (
 // Vault is an atomic, consistent, and durable password database, using NACL
 // secretbox.
 type Vault struct {
-	credentials map[string]*Credential
-	secret      [32]byte
-	nonce       [24]byte
+	data   []byte
+	nonce  [24]byte
+	secret [32]byte
 }
 
 type Credential struct {
@@ -52,19 +52,69 @@ func New(passphrase string) (*Vault, error) {
 	}
 	copy(secret[:], key)
 
-	return &Vault{
-		credentials: make(map[string]*Credential),
-		nonce:       nonce,
-		secret:      secret,
-	}, nil
+	v := &Vault{
+		nonce:  nonce,
+		secret: secret,
+	}
+
+	err = v.encrypt(make(map[string]*Credential))
+	if err != nil {
+		return nil, err
+	}
+
+	return v, nil
 }
 
-func (v *Vault) Add(location string, credential Credential) {
-	v.credentials[location] = &credential
+func (v *Vault) decrypt() (map[string]*Credential, error) {
+	decryptedData, success := secretbox.Open([]byte{}, v.data[len(v.nonce):], &v.nonce, &v.secret)
+	if !success {
+		return nil, ErrCouldNotDecrypt
+	}
+
+	credentials := make(map[string]*Credential)
+	err := gob.NewDecoder(bytes.NewBuffer(decryptedData)).Decode(&credentials)
+	if err != nil {
+		return nil, err
+	}
+
+	return credentials, nil
+}
+
+func (v *Vault) encrypt(creds map[string]*Credential) error {
+	var buf bytes.Buffer
+	err := gob.NewEncoder(&buf).Encode(creds)
+	if err != nil {
+		return err
+	}
+
+	v.data = secretbox.Seal(v.nonce[:], buf.Bytes(), &v.nonce, &v.secret)
+
+	return nil
+}
+
+func (v *Vault) Add(location string, credential Credential) error {
+	creds, err := v.decrypt()
+	if err != nil {
+		return err
+	}
+
+	creds[location] = &credential
+
+	err = v.encrypt(creds)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (v *Vault) Get(location string) (*Credential, error) {
-	cred, ok := v.credentials[location]
+	creds, err := v.decrypt()
+	if err != nil {
+		return nil, err
+	}
+
+	cred, ok := creds[location]
 	if !ok {
 		return nil, ErrNoSuchCredential
 	}
@@ -72,20 +122,12 @@ func (v *Vault) Get(location string) (*Credential, error) {
 }
 
 func (v *Vault) Save(filename string) error {
-	var credentialData bytes.Buffer
-	err := gob.NewEncoder(&credentialData).Encode(v.credentials)
-	if err != nil {
-		return err
-	}
-
-	encrypted := secretbox.Seal(v.nonce[:], credentialData.Bytes(), &v.nonce, &v.secret)
-
 	tempfile, err := ioutil.TempFile(path.Dir(filename), "passio-temp")
 	if err != nil {
 		return err
 	}
 
-	_, err = io.Copy(tempfile, bytes.NewBuffer(encrypted))
+	_, err = io.Copy(tempfile, bytes.NewBuffer(v.data))
 	if err != nil {
 		return err
 	}
@@ -121,32 +163,32 @@ func Open(filename string, passphrase string) (*Vault, error) {
 	var secret [32]byte
 	copy(secret[:], key)
 
-	decryptedData, success := secretbox.Open([]byte{}, encryptedData.Bytes()[24:], &nonce, &secret)
-	if !success {
-		return nil, ErrCouldNotDecrypt
+	vault := &Vault{
+		data:   encryptedData.Bytes(),
+		nonce:  nonce,
+		secret: secret,
 	}
 
-	credentials := make(map[string]*Credential)
-	err = gob.NewDecoder(bytes.NewBuffer(decryptedData)).Decode(&credentials)
+	creds, err := vault.decrypt()
 	if err != nil {
 		return nil, err
 	}
 
-	var newnonce [24]byte
-	if _, err := io.ReadFull(rand.Reader, nonce[:]); err != nil {
+	if _, err = io.ReadFull(rand.Reader, nonce[:]); err != nil {
 		return nil, err
 	}
 
-	var newsecret [32]byte
-	key, err = scrypt.Key([]byte(passphrase), newnonce[:], scryptN, scryptR, scryptP, keyLen)
+	key, err = scrypt.Key([]byte(passphrase), nonce[:], scryptN, scryptR, scryptP, keyLen)
 	if err != nil {
 		return nil, err
 	}
-	copy(newsecret[:], key)
+	copy(secret[:], key)
 
-	return &Vault{
-		credentials: credentials,
-		nonce:       newnonce,
-		secret:      newsecret,
-	}, nil
+	vault.secret = secret
+	vault.nonce = nonce
+	if err = vault.encrypt(creds); err != nil {
+		return nil, err
+	}
+
+	return vault, nil
 }

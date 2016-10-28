@@ -12,7 +12,10 @@ func TestNewSaveOpen(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	v.Add("testlocation", testCredential)
+	err = v.Add("testlocation", testCredential)
+	if err != nil {
+		t.Fatal(err)
+	}
 	err = v.Save("pass.db")
 	if err != nil {
 		t.Fatal(err)
