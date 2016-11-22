@@ -140,6 +140,19 @@ func (v *Vault) Save(filename string) error {
 	return nil
 }
 
+func (v *Vault) Locations() ([]string, error) {
+	var locations []string
+	creds, err := v.decrypt()
+	if err != nil {
+		return locations, err
+	}
+
+	for location, _ := range creds {
+		locations = append(locations, location)
+	}
+	return locations, nil
+}
+
 func Open(filename string, passphrase string) (*Vault, error) {
 	f, err := os.Open(filename)
 	if err != nil {
