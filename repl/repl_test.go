@@ -10,10 +10,14 @@ func TestREPLCmd(t *testing.T) {
 
 	called := false
 	var callArgs []string
-	r.AddCommand("testcmd", func(args []string) (string, error) {
-		callArgs = args
-		called = true
-		return "success", nil
+	r.AddCommand(Command{
+		Name: "testcmd",
+		Action: func(args []string) (string, error) {
+			callArgs = args
+			called = true
+			return "success", nil
+		},
+		Usage: "test usage",
 	})
 
 	res, err := r.eval("testcmd arg1 arg2")
@@ -35,8 +39,12 @@ func TestREPLCmdError(t *testing.T) {
 	r := New("test >")
 	testerr := errors.New("testerr")
 
-	r.AddCommand("testcmd", func(args []string) (string, error) {
-		return "", testerr
+	r.AddCommand(Command{
+		Name: "testcmd",
+		Action: func(args []string) (string, error) {
+			return "", testerr
+		},
+		Usage: "testusage",
 	})
 
 	res, err := r.eval("testcmd")
