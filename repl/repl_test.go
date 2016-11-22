@@ -1,9 +1,36 @@
 package repl
 
 import (
+	"bytes"
 	"errors"
 	"testing"
+	"time"
 )
+
+func TestREPLLoop(t *testing.T) {
+	r := New("test >")
+
+	stdin := new(bytes.Buffer)
+	stdout := new(bytes.Buffer)
+	r.input = stdin
+	r.output = stdout
+
+	stopped := make(chan struct{})
+	go func() {
+		defer close(stopped)
+		r.Loop()
+	}()
+
+	time.Sleep(100 * time.Millisecond)
+	if stdout.String() != "test >" {
+		t.Fatal("repl loop did not print the expected prompt")
+	}
+
+	stdout.Reset()
+	r.Stop()
+
+	<-stopped
+}
 
 func TestREPLCmd(t *testing.T) {
 	r := New("test >")

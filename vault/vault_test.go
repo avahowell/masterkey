@@ -1,9 +1,26 @@
 package vault
 
 import (
+	"os"
 	"reflect"
 	"testing"
 )
+
+func TestAddExisting(t *testing.T) {
+	testCredential := Credential{"testuser", "testpass"}
+	v, err := New("testpass")
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = v.Add("testlocation", testCredential)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = v.Add("testlocation", testCredential)
+	if err != ErrCredentialExists {
+		t.Fatal("expected add on existing location to return ErrCredentialExists")
+	}
+}
 
 func TestNewSaveOpen(t *testing.T) {
 	testCredential := Credential{"testuser", "testpass"}
@@ -20,6 +37,8 @@ func TestNewSaveOpen(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer os.Remove("pass.db")
+
 	vopen, err := Open("pass.db", "testpass")
 	if err != nil {
 		t.Fatal(err)
@@ -54,6 +73,8 @@ func TestNonceRotation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer os.Remove("pass.db")
+
 	vopen, err := Open("pass.db", "testpass")
 	if err != nil {
 		t.Fatal(err)

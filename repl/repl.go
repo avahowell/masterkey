@@ -3,6 +3,7 @@ package repl
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 )
@@ -19,6 +20,8 @@ type REPL struct {
 	usage    string
 	prompt   string
 	commands map[string]ActionFunc
+	input    io.Reader
+	output   io.Writer
 
 	stopchan chan struct{}
 }
@@ -28,6 +31,8 @@ func New(prompt string) *REPL {
 		commands: make(map[string]ActionFunc),
 		prompt:   prompt,
 		stopchan: make(chan struct{}),
+		input:    os.Stdin,
+		output:   os.Stdout,
 	}
 }
 
@@ -65,27 +70,26 @@ func (r *REPL) Loop() error {
 	msgchan := make(chan string)
 
 	go func() {
-		reader := bufio.NewReader(os.Stdin)
-		for {
-			line, _ := reader.ReadString('\n')
-			msgchan <- line
+		scanner := bufio.NewScanner(r.input)
+		for scanner.Scan() {
+			msgchan <- scanner.Text()
 		}
 	}()
 
 	for {
-		fmt.Print(r.prompt)
+		fmt.Fprint(r.output, r.prompt)
 		select {
 		case <-r.stopchan:
 			return nil
 		case line := <-msgchan:
-			line = strings.Replace(line, "\n", "", -1)
-			if line != "\n" {
+			fmt.Println(line)
+			if line != "" {
 				res, err := r.eval(line)
 				if err != nil {
-					fmt.Println("error: ", err.Error())
+					fmt.Fprintln(r.output, "error: ", err.Error())
 					continue
 				}
-				fmt.Println(res)
+				fmt.Fprintln(r.output, res)
 			}
 		}
 	}

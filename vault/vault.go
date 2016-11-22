@@ -24,6 +24,7 @@ const (
 var (
 	ErrNoSuchCredential = errors.New("credential at specified location does not exist in vault")
 	ErrCouldNotDecrypt  = errors.New("provided decryption key is incorrect or the provided vault is corrupt")
+	ErrCredentialExists = errors.New("credential at specified location already exists")
 )
 
 // Vault is an atomic, consistent, and durable password database, using NACL
@@ -96,6 +97,10 @@ func (v *Vault) Add(location string, credential Credential) error {
 	creds, err := v.decrypt()
 	if err != nil {
 		return err
+	}
+
+	if _, exists := creds[location]; exists {
+		return ErrCredentialExists
 	}
 
 	creds[location] = &credential
