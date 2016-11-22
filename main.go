@@ -1,19 +1,26 @@
 package main
 
 import (
+	"bytes"
+	"crypto/rand"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 
+	"github.com/NebulousLabs/entropy-mnemonics"
 	"github.com/howeyc/gopass"
 	"github.com/johnathanhowell/passio/repl"
 	"github.com/johnathanhowell/passio/vault"
 )
 
-const usage = `Usage: passio [-new] vault`
-const REPLhelp = `Available Commands:
+const (
+	genEntropySize = 16
+	usage          = `Usage: passio [-new] vault`
+	REPLhelp       = `Available Commands:
 get [location]: decrypt and print the credential at location
 `
+)
 
 func die(err error) {
 	fmt.Println(err)
@@ -67,6 +74,34 @@ func startRepl(v *vault.Vault) {
 			return "", err
 		}
 		return fmt.Sprintf("%v added successfully", location), nil
+	})
+	r.AddCommand("gen", func(args []string) (string, error) {
+		if len(args) != 2 {
+			return "", fmt.Errorf("gen requires two arguments. See help for usage.")
+		}
+		location := args[0]
+		username := args[1]
+
+		var buf bytes.Buffer
+		if _, err := io.CopyN(&buf, rand.Reader, genEntropySize); err != nil {
+			return "", err
+		}
+		phrase, err := mnemonics.ToPhrase(buf.Bytes(), mnemonics.English)
+		if err != nil {
+			return "", err
+		}
+
+		cred := vault.Credential{
+			Username: username,
+			Password: phrase.String(),
+		}
+
+		err = v.Add(location, cred)
+		if err != nil {
+			return "", err
+		}
+
+		return fmt.Sprintf("%v generated successfully", location), nil
 	})
 	r.Loop()
 }
