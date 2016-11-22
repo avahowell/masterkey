@@ -33,8 +33,21 @@ func main() {
 	}
 
 	vaultPath := flag.Args()[0]
+	var v *vault.Vault
 
-	if *createVault {
+	if !*createVault {
+		fmt.Print("Password for " + vaultPath + ": ")
+		passphrase, err := gopass.GetPasswd()
+		if err != nil {
+			die(err)
+		}
+		fmt.Printf("Opening %v...\n", vaultPath)
+
+		v, err = vault.Open(vaultPath, string(passphrase))
+		if err != nil {
+			die(err)
+		}
+	} else {
 		fmt.Print("Enter a passphrase for " + vaultPath + ": ")
 		passphrase1, err := gopass.GetPasswd()
 		if err != nil {
@@ -48,7 +61,7 @@ func main() {
 		if string(passphrase1) != string(passphrase2) {
 			die(fmt.Errorf("passphrases do not match"))
 		}
-		v, err := vault.New(string(passphrase1))
+		v, err = vault.New(string(passphrase1))
 		if err != nil {
 			die(err)
 		}
@@ -56,19 +69,6 @@ func main() {
 		if err != nil {
 			die(err)
 		}
-		return
-	}
-
-	fmt.Print("Password for " + vaultPath + ": ")
-	passphrase, err := gopass.GetPasswd()
-	if err != nil {
-		die(err)
-	}
-	fmt.Printf("Opening %v...\n", vaultPath)
-
-	v, err := vault.Open(vaultPath, string(passphrase))
-	if err != nil {
-		die(err)
 	}
 
 	r := repl.New("passio > ")

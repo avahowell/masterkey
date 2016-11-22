@@ -2,6 +2,7 @@ package repl
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"os"
@@ -17,9 +18,8 @@ type Command struct {
 type ActionFunc func([]string) (string, error)
 
 type REPL struct {
-	usage    string
 	prompt   string
-	commands map[string]ActionFunc
+	commands map[string]Command
 	input    io.Reader
 	output   io.Writer
 
@@ -28,7 +28,7 @@ type REPL struct {
 
 func New(prompt string) *REPL {
 	return &REPL{
-		commands: make(map[string]ActionFunc),
+		commands: make(map[string]Command),
 		prompt:   prompt,
 		stopchan: make(chan struct{}),
 		input:    os.Stdin,
@@ -36,13 +36,20 @@ func New(prompt string) *REPL {
 	}
 }
 
+func (r *REPL) Usage() string {
+	buf := new(bytes.Buffer)
+	for _, command := range r.commands {
+		fmt.Fprintln(buf, command.Usage)
+	}
+	return buf.String()
+}
+
 func (r *REPL) Stop() {
 	close(r.stopchan)
 }
 
 func (r *REPL) AddCommand(cmd Command) {
-	r.commands[cmd.Name] = cmd.Action
-	r.usage = r.usage + cmd.Usage + "\n"
+	r.commands[cmd.Name] = cmd
 }
 
 func (r *REPL) eval(line string) (string, error) {
@@ -50,15 +57,15 @@ func (r *REPL) eval(line string) (string, error) {
 	command := args[0]
 
 	if command == "help" {
-		return r.usage, nil
+		return r.Usage(), nil
 	}
 
-	action, exists := r.commands[command]
+	cmd, exists := r.commands[command]
 	if !exists {
 		return "", fmt.Errorf("command not recognized. Type `help` for a list of commands.")
 	}
 
-	res, err := action(args[1:])
+	res, err := cmd.Action(args[1:])
 	if err != nil {
 		return "", err
 	}
@@ -82,11 +89,10 @@ func (r *REPL) Loop() error {
 		case <-r.stopchan:
 			return nil
 		case line := <-msgchan:
-			fmt.Println(line)
 			if line != "" {
 				res, err := r.eval(line)
 				if err != nil {
-					fmt.Fprintln(r.output, "error: ", err.Error())
+					fmt.Fprintln(r.output, err.Error())
 					continue
 				}
 				fmt.Fprintln(r.output, res)
