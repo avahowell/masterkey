@@ -29,7 +29,7 @@ func TestAddInvalidKey(t *testing.T) {
 	}
 }
 
-func TestNonexistantVaultOpen(t *testing.T) {
+func TestNonexistentVaultOpen(t *testing.T) {
 	_, err := Open("doesntexist.jpg", "nopass")
 	if !os.IsNotExist(err) {
 		t.Fatal("Open did not return IsNotExist for non-existant filename")
@@ -53,6 +53,21 @@ func TestGenerate(t *testing.T) {
 	}
 	if cred.Password == "" {
 		t.Fatal("generate did not generate a password")
+	}
+}
+
+func TestGenerateExisting(t *testing.T) {
+	v, err := New("testpass")
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = v.Add("testlocation", Credential{"testuser", "testpass"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = v.Generate("testlocation", "testuser")
+	if err != ErrCredentialExists {
+		t.Fatal("expected credential exists error on generate with existing location")
 	}
 }
 
