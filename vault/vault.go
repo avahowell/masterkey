@@ -43,13 +43,13 @@ type Credential struct {
 func New(passphrase string) (*Vault, error) {
 	var nonce [24]byte
 	if _, err := io.ReadFull(rand.Reader, nonce[:]); err != nil {
-		return nil, err
+		panic(err)
 	}
 
 	var secret [32]byte
 	key, err := scrypt.Key([]byte(passphrase), nonce[:], scryptN, scryptR, scryptP, keyLen)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 	copy(secret[:], key)
 
@@ -193,12 +193,12 @@ func Open(filename string, passphrase string) (*Vault, error) {
 	}
 
 	if _, err = io.ReadFull(rand.Reader, nonce[:]); err != nil {
-		return nil, err
+		panic(err)
 	}
 
 	key, err = scrypt.Key([]byte(passphrase), nonce[:], scryptN, scryptR, scryptP, keyLen)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 	copy(secret[:], key)
 
