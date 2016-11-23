@@ -9,23 +9,35 @@ import (
 	"strings"
 )
 
-type Command struct {
-	Name   string
-	Action ActionFunc
-	Usage  string
-}
+type (
+	// REPL is a read-eval-print loop used to create a simple, minimalistic,
+	// easy-to-use command line interface for masterkey.
+	REPL struct {
+		prompt   string
+		commands map[string]Command
+		input    io.Reader
+		output   io.Writer
 
-type ActionFunc func([]string) (string, error)
+		stopchan chan struct{}
+	}
 
-type REPL struct {
-	prompt   string
-	commands map[string]Command
-	input    io.Reader
-	output   io.Writer
+	// Command is a command that can be registered with the REPL. It consists
+	// of a name, an action that is run when the name is input to the REPL, and
+	// a usage string.
+	Command struct {
+		Name   string
+		Action ActionFunc
+		Usage  string
+	}
 
-	stopchan chan struct{}
-}
+	// ActionFunc defines the signature of an action associated with a command.
+	// Actions take on parameter, a slice of strings, representing the arguments
+	// passed to the command. Actions should return a string representing the
+	// result of the action, or an error if the action fails.
+	ActionFunc func([]string) (string, error)
+)
 
+// New instantiates a new REPL using the provided `prompt`.
 func New(prompt string) *REPL {
 	return &REPL{
 		commands: make(map[string]Command),
@@ -36,6 +48,7 @@ func New(prompt string) *REPL {
 	}
 }
 
+// Usage returns the usage for every command in the REPL.
 func (r *REPL) Usage() string {
 	buf := new(bytes.Buffer)
 	for _, command := range r.commands {
@@ -44,14 +57,17 @@ func (r *REPL) Usage() string {
 	return buf.String()
 }
 
+// Stop terminates the REPL.
 func (r *REPL) Stop() {
 	close(r.stopchan)
 }
 
+// AddCommand registers the command provided in `cmd` with the REPL.
 func (r *REPL) AddCommand(cmd Command) {
 	r.commands[cmd.Name] = cmd
 }
 
+// eval evaluates a line that was input to the REPL.
 func (r *REPL) eval(line string) (string, error) {
 	args := strings.Split(line, " ")
 	command := args[0]
@@ -73,6 +89,7 @@ func (r *REPL) eval(line string) (string, error) {
 	return res, nil
 }
 
+// Loop starts the Read-Eval-Print loop.
 func (r *REPL) Loop() error {
 	msgchan := make(chan string)
 
