@@ -11,10 +11,7 @@ import (
 	"github.com/johnathanhowell/masterkey/vault"
 )
 
-const (
-	genEntropySize = 16
-	usage          = `Usage: masterkey [-new] vault`
-)
+const usage = `Usage: masterkey [-new] vault`
 
 func die(err error) {
 	fmt.Println(err)
