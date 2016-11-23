@@ -7,6 +7,48 @@ import (
 	"github.com/johnathanhowell/masterkey/vault"
 )
 
+var (
+	listCmd = func(v *vault.Vault) repl.Command {
+		return repl.Command{
+			Name:   "list",
+			Action: list(v),
+			Usage:  "list: list the credentials stored inside this vault",
+		}
+	}
+
+	saveCmd = func(v *vault.Vault, vaultPath string) repl.Command {
+		return repl.Command{
+			Name:   "save",
+			Action: save(v, vaultPath),
+			Usage:  "save: save the changes in this vault to disk",
+		}
+	}
+
+	getCmd = func(v *vault.Vault) repl.Command {
+		return repl.Command{
+			Name:   "get",
+			Action: get(v),
+			Usage:  "get [location]: get the credential at [location]",
+		}
+	}
+
+	addCmd = func(v *vault.Vault) repl.Command {
+		return repl.Command{
+			Name:   "add",
+			Action: add(v),
+			Usage:  "add [location] [username] [password]: add a credential to the vault",
+		}
+	}
+
+	genCmd = func(v *vault.Vault) repl.Command {
+		return repl.Command{
+			Name:   "gen",
+			Action: gen(v),
+			Usage:  "gen [location] [username]: generate a password and add it to the vault",
+		}
+	}
+)
+
 func list(v *vault.Vault) repl.ActionFunc {
 	return func(args []string) (string, error) {
 		locations, err := v.Locations()
@@ -81,45 +123,3 @@ func gen(v *vault.Vault) repl.ActionFunc {
 		return fmt.Sprintf("%v generated successfully", location), nil
 	}
 }
-
-var (
-	listCmd = func(v *vault.Vault) repl.Command {
-		return repl.Command{
-			Name:   "list",
-			Action: list(v),
-			Usage:  "list: list the credentials stored inside this vault",
-		}
-	}
-
-	saveCmd = func(v *vault.Vault, vaultPath string) repl.Command {
-		return repl.Command{
-			Name:   "save",
-			Action: save(v, vaultPath),
-			Usage:  "save: save the changes in this vault to disk",
-		}
-	}
-
-	getCmd = func(v *vault.Vault) repl.Command {
-		return repl.Command{
-			Name:   "get",
-			Action: get(v),
-			Usage:  "get [location]: get the credential at [location]",
-		}
-	}
-
-	addCmd = func(v *vault.Vault) repl.Command {
-		return repl.Command{
-			Name:   "add",
-			Action: add(v),
-			Usage:  "add [location] [username] [password]: add a credential to the vault",
-		}
-	}
-
-	genCmd = func(v *vault.Vault) repl.Command {
-		return repl.Command{
-			Name:   "gen",
-			Action: gen(v),
-			Usage:  "gen [location] [username]: generate a password and add it to the vault",
-		}
-	}
-)
