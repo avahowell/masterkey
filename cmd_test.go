@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/johnathanhowell/masterkey/vault"
+	"reflect"
 	"testing"
 )
 
@@ -113,5 +114,41 @@ func TestGenCommand(t *testing.T) {
 	}
 	if cred.Password == "" {
 		t.Fatal("gencmd did not generate a password")
+	}
+}
+
+func TestSaveCommand(t *testing.T) {
+	v, err := vault.New("testpass")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	savecmd := save(v, "testvault")
+
+	testcredential := vault.Credential{"testuser", "testpass"}
+
+	err = v.Add("testlocation", testcredential)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	res, err := savecmd([]string{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res != "saved successfully" {
+		t.Fatal("expected save command to save successfully")
+	}
+
+	vopen, err := vault.Open("testvault", "testpass")
+	if err != nil {
+		t.Fatal(err)
+	}
+	cred, err := vopen.Get("testlocation")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(cred, &testcredential) {
+		t.Fatalf("expected on-disk vault to have test credential after save cmd, wanted %v got %v\n", testcredential, cred)
 	}
 }
