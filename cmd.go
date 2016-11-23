@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 
-	"github.com/johnathanhowell/passio/repl"
-	"github.com/johnathanhowell/passio/vault"
+	"github.com/johnathanhowell/masterkey/repl"
+	"github.com/johnathanhowell/masterkey/vault"
 )
 
 func list(v *vault.Vault) repl.ActionFunc {

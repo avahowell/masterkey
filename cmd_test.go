@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/johnathanhowell/passio/vault"
+	"github.com/johnathanhowell/masterkey/vault"
 	"testing"
 )
 

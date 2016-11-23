@@ -7,13 +7,13 @@ import (
 	"os/signal"
 
 	"github.com/howeyc/gopass"
-	"github.com/johnathanhowell/passio/repl"
-	"github.com/johnathanhowell/passio/vault"
+	"github.com/johnathanhowell/masterkey/repl"
+	"github.com/johnathanhowell/masterkey/vault"
 )
 
 const (
 	genEntropySize = 16
-	usage          = `Usage: passio [-new] vault`
+	usage          = `Usage: masterkey [-new] vault`
 )
 
 func die(err error) {
@@ -71,7 +71,7 @@ func main() {
 		}
 	}
 
-	r := repl.New("passio > ")
+	r := repl.New("masterkey > ")
 
 	sigchan := make(chan os.Signal, 1)
 	signal.Notify(sigchan, os.Interrupt, os.Kill)
