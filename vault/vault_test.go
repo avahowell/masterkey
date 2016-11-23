@@ -7,6 +7,43 @@ import (
 	"testing"
 )
 
+func TestEditLocationNonexisting(t *testing.T) {
+	v, err := New("testpass")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = v.Edit("testlocation", Credential{"testusername", "testpassword"})
+	if err != ErrNoSuchCredential {
+		t.Fatal("expected Edit on non-existant location to return ErrNoSuchCredential")
+	}
+}
+
+func TestEditLocation(t *testing.T) {
+	v, err := New("testpass")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = v.Add("testlocation", Credential{"testusername", "testpassword"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = v.Edit("testlocation", Credential{"testusername2", "testpassword2"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cred, err := v.Get("testlocation")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if cred.Username != "testusername2" || cred.Password != "testpassword2" {
+		t.Fatal("vault.Edit did not change credential data")
+	}
+}
 func TestGetInvalidKey(t *testing.T) {
 	v, err := New("testpass")
 	if err != nil {

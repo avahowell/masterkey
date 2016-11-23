@@ -251,6 +251,27 @@ func (v *Vault) Save(filename string) error {
 	return nil
 }
 
+// Edit replaces the credential at location with the provided `credential`.
+func (v *Vault) Edit(location string, credential Credential) error {
+	creds, err := v.decrypt()
+	if err != nil {
+		return err
+	}
+
+	if _, ok := creds[location]; !ok {
+		return ErrNoSuchCredential
+	}
+
+	creds[location] = &credential
+
+	err = v.encrypt(creds)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // Locations() retrieves the locations in the vault and returns them as a
 // slice of strings.
 func (v *Vault) Locations() ([]string, error) {
