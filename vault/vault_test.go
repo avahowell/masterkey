@@ -36,6 +36,26 @@ func TestNonexistantVaultOpen(t *testing.T) {
 	}
 }
 
+func TestGenerate(t *testing.T) {
+	v, err := New("testpass")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = v.Generate("testlocation", "testusername"); err != nil {
+		t.Fatal(err)
+	}
+	cred, err := v.Get("testlocation")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cred.Username != "testusername" {
+		t.Fatal("Generate did not set username")
+	}
+	if cred.Password == "" {
+		t.Fatal("generate did not generate a password")
+	}
+}
+
 func TestGetLocations(t *testing.T) {
 	creds := []Credential{
 		{"test1", "testpass1"},

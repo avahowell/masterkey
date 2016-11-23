@@ -1,12 +1,8 @@
 package main
 
 import (
-	"bytes"
-	"crypto/rand"
 	"fmt"
-	"io"
 
-	"github.com/NebulousLabs/entropy-mnemonics"
 	"github.com/johnathanhowell/passio/repl"
 	"github.com/johnathanhowell/passio/vault"
 )
@@ -74,25 +70,11 @@ func gen(v *vault.Vault) repl.ActionFunc {
 		if len(args) != 2 {
 			return "", fmt.Errorf("gen requires two arguments. See help for usage.")
 		}
+
 		location := args[0]
 		username := args[1]
 
-		var buf bytes.Buffer
-		if _, err := io.CopyN(&buf, rand.Reader, genEntropySize); err != nil {
-			return "", err
-		}
-		phrase, err := mnemonics.ToPhrase(buf.Bytes(), mnemonics.English)
-		if err != nil {
-			return "", err
-		}
-
-		cred := vault.Credential{
-			Username: username,
-			Password: phrase.String(),
-		}
-
-		err = v.Add(location, cred)
-		if err != nil {
+		if err := v.Generate(location, username); err != nil {
 			return "", err
 		}
 

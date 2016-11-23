@@ -10,15 +10,17 @@ import (
 	"path"
 
 	"encoding/gob"
+	"github.com/NebulousLabs/entropy-mnemonics"
 	"golang.org/x/crypto/nacl/secretbox"
 	"golang.org/x/crypto/scrypt"
 )
 
 const (
-	scryptN = 16384
-	scryptR = 8
-	scryptP = 1
-	keyLen  = 32
+	scryptN        = 16384
+	scryptR        = 8
+	scryptP        = 1
+	keyLen         = 32
+	genEntropySize = 16
 )
 
 var (
@@ -64,6 +66,29 @@ func New(passphrase string) (*Vault, error) {
 	}
 
 	return v, nil
+}
+
+func (v *Vault) Generate(location string, username string) error {
+	buf := new(bytes.Buffer)
+	_, err := io.CopyN(buf, rand.Reader, genEntropySize)
+	if err != nil {
+		panic(err)
+	}
+	phrase, err := mnemonics.ToPhrase(buf.Bytes(), mnemonics.English)
+	if err != nil {
+		return err
+	}
+
+	cred := Credential{
+		Username: username,
+		Password: phrase.String(),
+	}
+
+	err = v.Add(location, cred)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (v *Vault) decrypt() (map[string]*Credential, error) {
