@@ -19,3 +19,10 @@ Note that as with all password managers, your vault is only as secure as your ma
 
 `masterkey` will launch you into an interactive shell where you can interact with your vault. `help` lists the available commands. The vault will automatically be (safely, that is, atomically), saved on ctrl-c or `exit`.
 
+## Planned Features
+
+- Migration from 1Password, KeePass, and `password-store`
+- Secure cross-platform clipboard interaction (with automatic clearing)
+- Web interface
+
+
