@@ -1,6 +1,7 @@
 package vault
 
 import (
+	"fmt"
 	"os"
 	"reflect"
 	"sort"
@@ -44,6 +45,7 @@ func TestEditLocation(t *testing.T) {
 		t.Fatal("vault.Edit did not change credential data")
 	}
 }
+
 func TestGetInvalidKey(t *testing.T) {
 	v, err := New("testpass")
 	if err != nil {
@@ -63,6 +65,47 @@ func TestAddInvalidKey(t *testing.T) {
 	v.secret = [32]byte{}
 	if err = v.Add("testlocation", Credential{"test", "test2"}); err != ErrCouldNotDecrypt {
 		t.Fatal("expected v.Add to return ErrCouldNotDecrypt with invalid secret")
+	}
+}
+
+func TestHeavyVault(t *testing.T) {
+	if testing.Short() {
+		t.SkipNow()
+	}
+
+	size := 10000
+
+	v, err := New("testpass")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for i := 0; i < size; i++ {
+		err = v.Add(fmt.Sprintf("testlocation%v", i), Credential{"testuser", "testpassword"})
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	err = v.Save("testvault.db")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove("testvault.db")
+
+	vopen, err := Open("testvault.db", "testpass")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for i := 0; i < size; i++ {
+		cred, err := vopen.Get(fmt.Sprintf("testlocation%v", i))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if cred.Username != "testuser" || cred.Password != "testpassword" {
+			t.Fatal("huge vault did not contain testuser or testvault")
+		}
 	}
 }
 
@@ -225,5 +268,16 @@ func TestNonceRotation(t *testing.T) {
 	}
 	if vopen.nonce == oldnonce {
 		t.Fatal("opened vault had the same nonce as the previous vault")
+	}
+}
+
+func BenchmarkVaultAdd(b *testing.B) {
+	v, err := New("testpass")
+	if err != nil {
+	}
+	for i := 0; i < b.N; i++ {
+		err = v.Add(fmt.Sprintf("testlocation%v", i), Credential{"testuser", "testpass"})
+		if err != nil {
+		}
 	}
 }
