@@ -87,6 +87,7 @@ func main() {
 	r.AddCommand(getCmd(v))
 	r.AddCommand(addCmd(v))
 	r.AddCommand(genCmd(v))
+	r.AddCommand(editCmd(v))
 
 	r.Loop()
 }
