@@ -22,7 +22,6 @@ Note that as with all password managers, your vault is only as secure as your ma
 ## Planned Features
 
 - Migration from 1Password, KeePass, and `password-store`
-- Secure cross-platform clipboard interaction (with automatic clearing)
 - Web interface
 
 
