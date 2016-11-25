@@ -33,7 +33,7 @@ func TestSecureClipStaggeredCalls(t *testing.T) {
 	if err := Clip("test2"); err != nil {
 		t.Fatal(err)
 	}
-	time.Sleep(time.Second + (time.Millisecond * 900))
+	time.Sleep(time.Second + time.Millisecond*500)
 	contents, err := clipboard.ReadAll()
 	if err != nil {
 		t.Fatal(err)

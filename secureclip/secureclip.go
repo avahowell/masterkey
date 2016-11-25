@@ -11,6 +11,8 @@ var (
 	clipTimeout = time.Second * 30
 )
 
+// Clip copies the passphrase given by `passphrase` to the clipboard. The
+// clipboard will be cleared 30 seconds after the last `Clip` call.
 func Clip(passphrase string) error {
 	err := clipboard.WriteAll(passphrase)
 	if err != nil {
