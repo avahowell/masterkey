@@ -27,3 +27,8 @@ func Clip(passphrase string) error {
 	}()
 	return nil
 }
+
+// Clear clears the clipboard.
+func Clear() error {
+	return clipboard.WriteAll("")
+}

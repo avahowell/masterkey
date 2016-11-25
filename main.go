@@ -8,6 +8,7 @@ import (
 
 	"github.com/howeyc/gopass"
 	"github.com/johnathanhowell/masterkey/repl"
+	"github.com/johnathanhowell/masterkey/secureclip"
 	"github.com/johnathanhowell/masterkey/vault"
 )
 
@@ -75,6 +76,7 @@ func main() {
 	go func() {
 		<-sigchan
 		fmt.Println("\nCaught quit signal, saving vault")
+		secureclip.Clear()
 		err := v.Save(vaultPath)
 		if err != nil {
 			fmt.Printf("error saving vault: %v\n", err)
