@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/johnathanhowell/masterkey/repl"
+	"github.com/johnathanhowell/masterkey/secureclip"
 	"github.com/johnathanhowell/masterkey/vault"
 )
 
@@ -55,7 +56,34 @@ var (
 			Usage:  "edit [location] [username] [password]: change the credentials at location to username, password",
 		}
 	}
+
+	clipCmd = func(v *vault.Vault) repl.Command {
+		return repl.Command{
+			Name:   "clip",
+			Action: clip(v),
+			Usage:  "clip [location]: copy the password at location to the clipboard.",
+		}
+	}
 )
+
+func clip(v *vault.Vault) repl.ActionFunc {
+	return func(args []string) (string, error) {
+		if len(args) != 1 {
+			return "", fmt.Errorf("clip requires 1 argument. See help for usage.")
+		}
+
+		location := args[0]
+		cred, err := v.Get(location)
+		if err != nil {
+			return "", err
+		}
+		err = secureclip.Clip(cred.Password)
+		if err != nil {
+			return "", err
+		}
+		return fmt.Sprintf("%v copied to clipboard, will clear in 30 seconds", location), nil
+	}
+}
 
 func edit(v *vault.Vault) repl.ActionFunc {
 	return func(args []string) (string, error) {

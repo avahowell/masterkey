@@ -1,9 +1,11 @@
 package main
 
 import (
-	"github.com/johnathanhowell/masterkey/vault"
 	"reflect"
 	"testing"
+
+	"github.com/atotto/clipboard"
+	"github.com/johnathanhowell/masterkey/vault"
 )
 
 func TestListCommand(t *testing.T) {
@@ -185,5 +187,40 @@ func TestEditCommand(t *testing.T) {
 	}
 	if cred.Username != "testuser2" || cred.Password != "testpass2" {
 		t.Fatal("edit did not update credential")
+	}
+}
+
+func TestClipCommand(t *testing.T) {
+	v, err := vault.New("testpass")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	clipcmd := clip(v)
+
+	_, err = clipcmd([]string{})
+	if err == nil {
+		t.Fatal("clipcmd should return an error with no args")
+	}
+
+	err = v.Add("testlocation", vault.Credential{"testuser", "testpass"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	res, err := clipcmd([]string{"testlocation"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res != "testlocation copied to clipboard, will clear in 30 seconds" {
+		t.Fatal("clip command should return success string")
+	}
+
+	clipcontents, err := clipboard.ReadAll()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if clipcontents != "testpass" {
+		t.Fatal("clip command did not copy the passphrase into the clipboard")
 	}
 }
