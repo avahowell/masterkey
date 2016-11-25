@@ -4,9 +4,9 @@ masterkey is a simple, secure password manager written in Go using `nacl/secretb
 
 ## Usage
 
-Install `masterkey` either by downloading a release or using `go install`:
+Install `masterkey` either by downloading a release or using `go get`:
 
-`go install github.com/johnathanhowell/masterkey`
+`go get github.com/johnathanhowell/masterkey`
 
 Create your vault, in this example we'll create it at `./vault.db`
 
