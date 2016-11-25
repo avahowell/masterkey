@@ -152,3 +152,38 @@ func TestSaveCommand(t *testing.T) {
 		t.Fatalf("expected on-disk vault to have test credential after save cmd, wanted %v got %v\n", testcredential, cred)
 	}
 }
+
+func TestEditCommand(t *testing.T) {
+	v, err := vault.New("testpass")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	editcmd := edit(v)
+
+	_, err = editcmd([]string{"testlocation"})
+	if err == nil {
+		t.Fatal("expected edit command to return error if 3 args are not provided")
+	}
+
+	err = v.Add("testlocation", vault.Credential{Username: "testuser", Password: "testpass"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	res, err := editcmd([]string{"testlocation", "testuser2", "testpass2"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res != "testlocation updated successfully" {
+		t.Fatal("expected edit command to return updated successfully on edit")
+	}
+
+	cred, err := v.Get("testlocation")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cred.Username != "testuser2" || cred.Password != "testpass2" {
+		t.Fatal("edit did not update credential")
+	}
+}

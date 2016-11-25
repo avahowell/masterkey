@@ -47,7 +47,34 @@ var (
 			Usage:  "gen [location] [username]: generate a password and add it to the vault",
 		}
 	}
+
+	editCmd = func(v *vault.Vault) repl.Command {
+		return repl.Command{
+			Name:   "edit",
+			Action: edit(v),
+			Usage:  "edit [location] [username] [password]: change the credentials at location to username, password",
+		}
+	}
 )
+
+func edit(v *vault.Vault) repl.ActionFunc {
+	return func(args []string) (string, error) {
+		if len(args) != 3 {
+			return "", fmt.Errorf("edit requires 3 arguments. See help for usage.")
+		}
+		location := args[0]
+		credential := vault.Credential{
+			Username: args[1],
+			Password: args[2],
+		}
+
+		err := v.Edit(location, credential)
+		if err != nil {
+			return "", err
+		}
+		return fmt.Sprintf("%v updated successfully", location), nil
+	}
+}
 
 func list(v *vault.Vault) repl.ActionFunc {
 	return func(args []string) (string, error) {
