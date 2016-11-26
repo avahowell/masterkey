@@ -272,7 +272,7 @@ func (v *Vault) Edit(location string, credential Credential) error {
 	return nil
 }
 
-// Locations() retrieves the locations in the vault and returns them as a
+// Locations retrieves the locations in the vault and returns them as a
 // slice of strings.
 func (v *Vault) Locations() ([]string, error) {
 	var locations []string
@@ -281,7 +281,7 @@ func (v *Vault) Locations() ([]string, error) {
 		return locations, err
 	}
 
-	for location, _ := range creds {
+	for location := range creds {
 		locations = append(locations, location)
 	}
 	return locations, nil
