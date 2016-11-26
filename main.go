@@ -69,7 +69,7 @@ func main() {
 		}
 	}
 
-	r := repl.New("masterkey > ")
+	r := repl.New(fmt.Sprintf("masterkey [%v] > ", vaultPath))
 
 	sigchan := make(chan os.Signal, 1)
 	signal.Notify(sigchan, os.Interrupt, os.Kill)
