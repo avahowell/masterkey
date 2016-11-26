@@ -10,11 +10,33 @@ Install `masterkey` either by downloading a release or using `go get`:
 
 `go get github.com/johnathanhowell/masterkey`
 
-Create your vault, in this example we'll create it at `./vault.db`
+Now create your vault, in this example we'll create it at `./vault.db`. New vaults are created using the `-new` flag, existing vaults can be opened by simplly omitting the `-new` flag.
 
 ```
 masterkey -new vault.db
-... enter strong passphrase twice
+Enter a passphrase for vault.db:
+Enter the same passphrase again:
+masterkey [vault.db] >
+masterkey [vault.db] > help
+gen [location] [username]: generate a password and add it to the vault
+edit [location] [username] [password]: change the credentials at location to username, password
+clip [location]: copy the password at location to the clipboard.
+search [searchtext]: search the vault for locations containing searchtext
+list: list the credentials stored inside this vault
+save: save the changes in this vault to disk
+get [location]: get the credential at [location]
+add [location] [username] [password]: add a credential to the vaul
+masterkey [vault.db] > gen github.com johnathanhowell
+github.com generated successfully
+masterkey [vault.db] > get github.com
+Username: johnathanhowell
+Password: speedy dwindling bicycle cedar putty urgent myriad ensign jaws gambit digit usual
+masterkey [vault.db] > clip github.com
+github.com copied to clipboard, will clear in 30 seconds
+masterkey [vault.db] > exit
+clearing clipboard and saving vault
+
+... end of session.
 ```
 
 Note that as with all password managers, your vault is only as secure as your master password. Use a strong, high entropy master password to protect your credentials.
