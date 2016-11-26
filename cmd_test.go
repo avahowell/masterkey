@@ -105,7 +105,7 @@ func TestGenCommand(t *testing.T) {
 		t.Fatal(err)
 	}
 	if res != "testlocation generated successfully\n" {
-		t.Fatal("gen did not return succesfully")
+		t.Fatal("gen did not return successfully")
 	}
 	cred, err := v.Get("testlocation")
 	if err != nil {

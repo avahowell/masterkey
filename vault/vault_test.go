@@ -16,7 +16,7 @@ func TestEditLocationNonexisting(t *testing.T) {
 
 	err = v.Edit("testlocation", Credential{"testusername", "testpassword"})
 	if err != ErrNoSuchCredential {
-		t.Fatal("expected Edit on non-existant location to return ErrNoSuchCredential")
+		t.Fatal("expected Edit on non-existent location to return ErrNoSuchCredential")
 	}
 }
 
@@ -112,7 +112,7 @@ func TestHeavyVault(t *testing.T) {
 func TestNonexistentVaultOpen(t *testing.T) {
 	_, err := Open("doesntexist.jpg", "nopass")
 	if !os.IsNotExist(err) {
-		t.Fatal("Open did not return IsNotExist for non-existant filename")
+		t.Fatal("Open did not return IsNotExist for non-existent filename")
 	}
 }
 
