@@ -26,10 +26,19 @@ func TestREPLLoop(t *testing.T) {
 		t.Fatal("repl loop did not print the expected prompt")
 	}
 
+	stopfuncCalled := false
+	stopfunc := func() {
+		stopfuncCalled = true
+	}
+	r.OnStop(stopfunc)
+
 	stdout.Reset()
 	r.Stop()
 
 	<-stopped
+	if !stopfuncCalled {
+		t.Fatal("stopfunc was not called")
+	}
 }
 
 func TestREPLCmd(t *testing.T) {

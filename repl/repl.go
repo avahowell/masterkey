@@ -17,6 +17,7 @@ type (
 		commands map[string]Command
 		input    io.Reader
 		output   io.Writer
+		stopfunc func()
 
 		stopchan chan struct{}
 	}
@@ -48,6 +49,11 @@ func New(prompt string) *REPL {
 	}
 }
 
+// OnStop registers a function to be called when the REPL stops.
+func (r *REPL) OnStop(sf func()) {
+	r.stopfunc = sf
+}
+
 // Usage returns the usage for every command in the REPL.
 func (r *REPL) Usage() string {
 	buf := new(bytes.Buffer)
@@ -59,6 +65,9 @@ func (r *REPL) Usage() string {
 
 // Stop terminates the REPL.
 func (r *REPL) Stop() {
+	if r.stopfunc != nil {
+		r.stopfunc()
+	}
 	close(r.stopchan)
 }
 
