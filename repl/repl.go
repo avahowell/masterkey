@@ -87,7 +87,7 @@ func (r *REPL) eval(line string) (string, error) {
 
 	if command == "exit" {
 		r.Stop()
-		return "exiting", nil
+		return "", nil
 	}
 
 	cmd, exists := r.commands[command]

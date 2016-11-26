@@ -75,12 +75,6 @@ func main() {
 	signal.Notify(sigchan, os.Interrupt, os.Kill)
 	go func() {
 		<-sigchan
-		fmt.Println("\nCaught quit signal, saving vault")
-		secureclip.Clear()
-		err := v.Save(vaultPath)
-		if err != nil {
-			fmt.Printf("error saving vault: %v\n", err)
-		}
 		r.Stop()
 	}()
 
@@ -91,6 +85,11 @@ func main() {
 	r.AddCommand(genCmd(v))
 	r.AddCommand(editCmd(v))
 	r.AddCommand(clipCmd(v))
+	r.OnStop(func() {
+		fmt.Println("\nclearing clipboard and saving vault")
+		secureclip.Clear()
+		v.Save(vaultPath)
+	})
 
 	r.Loop()
 }
