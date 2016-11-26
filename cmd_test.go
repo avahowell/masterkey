@@ -105,7 +105,7 @@ func TestGenCommand(t *testing.T) {
 		t.Fatal(err)
 	}
 	if res != "testlocation generated successfully\n" {
-		t.Fatal("gen did not return successfully")
+		t.Fatal("gen did not return succesfully")
 	}
 	cred, err := v.Get("testlocation")
 	if err != nil {
@@ -261,6 +261,7 @@ func TestSearchCommand(t *testing.T) {
 		t.Fatal(err)
 	}
 	if res != "testloc\nloc2\n" {
+		t.Log(res)
 		t.Fatal("search command did not find credentials")
 	}
 

@@ -1,0 +1,12 @@
+language: go
+
+notifications:
+  email: false
+
+os:
+  - linux
+
+go:
+  - 1.7
+
+script: go test -v -short ./... 
