@@ -112,7 +112,7 @@ func clip(v *vault.Vault) repl.ActionFunc {
 		if err != nil {
 			return "", err
 		}
-		return fmt.Sprintf("%v copied to clipboard, will clear in 30 seconds", location), nil
+		return fmt.Sprintf("%v copied to clipboard, will clear in 30 seconds\n", location), nil
 	}
 }
 
@@ -131,7 +131,7 @@ func edit(v *vault.Vault) repl.ActionFunc {
 		if err != nil {
 			return "", err
 		}
-		return fmt.Sprintf("%v updated successfully", location), nil
+		return fmt.Sprintf("%v updated successfully\n", location), nil
 	}
 }
 
@@ -154,7 +154,7 @@ func save(v *vault.Vault, savePath string) repl.ActionFunc {
 		if err := v.Save(savePath); err != nil {
 			return "", err
 		}
-		return "saved successfully", nil
+		return fmt.Sprintf("%v saved successfully.\n", savePath), nil
 	}
 }
 
@@ -169,7 +169,7 @@ func get(v *vault.Vault) repl.ActionFunc {
 			return "", err
 		}
 
-		return fmt.Sprintf("Username: %v\nPassword: %v", cred.Username, cred.Password), nil
+		return fmt.Sprintf("Username: %v\nPassword: %v\n", cred.Username, cred.Password), nil
 	}
 }
 
@@ -189,7 +189,7 @@ func add(v *vault.Vault) repl.ActionFunc {
 		if err != nil {
 			return "", err
 		}
-		return fmt.Sprintf("%v added successfully", location), nil
+		return fmt.Sprintf("%v added successfully\n", location), nil
 	}
 }
 
@@ -206,6 +206,6 @@ func gen(v *vault.Vault) repl.ActionFunc {
 			return "", err
 		}
 
-		return fmt.Sprintf("%v generated successfully", location), nil
+		return fmt.Sprintf("%v generated successfully\n", location), nil
 	}
 }

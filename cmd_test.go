@@ -74,7 +74,7 @@ func TestAddCmd(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if res != "testlocation added successfully" {
+	if res != "testlocation added successfully\n" {
 		t.Fatal("add returned the incorrect result")
 	}
 	cred, err := v.Get("testlocation")
@@ -104,7 +104,7 @@ func TestGenCommand(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if res != "testlocation generated successfully" {
+	if res != "testlocation generated successfully\n" {
 		t.Fatal("gen did not return succesfully")
 	}
 	cred, err := v.Get("testlocation")
@@ -138,7 +138,7 @@ func TestSaveCommand(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if res != "saved successfully" {
+	if res != "testvault saved successfully.\n" {
 		t.Fatal("expected save command to save successfully")
 	}
 
@@ -177,7 +177,7 @@ func TestEditCommand(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if res != "testlocation updated successfully" {
+	if res != "testlocation updated successfully\n" {
 		t.Fatal("expected edit command to return updated successfully on edit")
 	}
 
@@ -212,7 +212,7 @@ func TestClipCommand(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if res != "testlocation copied to clipboard, will clear in 30 seconds" {
+	if res != "testlocation copied to clipboard, will clear in 30 seconds\n" {
 		t.Fatal("clip command should return success string")
 	}
 
