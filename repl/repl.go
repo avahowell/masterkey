@@ -85,6 +85,11 @@ func (r *REPL) eval(line string) (string, error) {
 		return r.Usage(), nil
 	}
 
+	if command == "exit" {
+		r.Stop()
+		return "exiting", nil
+	}
+
 	cmd, exists := r.commands[command]
 	if !exists {
 		return "", fmt.Errorf("command not recognized. Type `help` for a list of commands.")
