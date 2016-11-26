@@ -126,7 +126,7 @@ func (r *REPL) Loop() error {
 					fmt.Fprintln(r.output, err.Error())
 					continue
 				}
-				fmt.Fprintln(r.output, res)
+				fmt.Fprint(r.output, res)
 			}
 		}
 	}

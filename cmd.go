@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/johnathanhowell/masterkey/repl"
 	"github.com/johnathanhowell/masterkey/secureclip"
@@ -64,7 +65,37 @@ var (
 			Usage:  "clip [location]: copy the password at location to the clipboard.",
 		}
 	}
+
+	searchCmd = func(v *vault.Vault) repl.Command {
+		return repl.Command{
+			Name:   "search",
+			Action: search(v),
+			Usage:  "search [searchtext]: search the vault for locations containing searchtext",
+		}
+	}
 )
+
+func search(v *vault.Vault) repl.ActionFunc {
+	return func(args []string) (string, error) {
+		if len(args) != 1 {
+			return "", fmt.Errorf("search requires 1 argument. See help for usage.")
+		}
+		searchtext := args[0]
+
+		locations, err := v.Locations()
+		if err != nil {
+			return "", err
+		}
+
+		printstring := ""
+		for _, location := range locations {
+			if strings.Contains(location, searchtext) {
+				printstring += location + "\n"
+			}
+		}
+		return printstring, nil
+	}
+}
 
 func clip(v *vault.Vault) repl.ActionFunc {
 	return func(args []string) (string, error) {
@@ -110,9 +141,9 @@ func list(v *vault.Vault) repl.ActionFunc {
 		if err != nil {
 			return "", err
 		}
-		printstring := "Locations stored in this vault: "
+		printstring := "Locations stored in this vault: \n"
 		for _, loc := range locations {
-			printstring += "\n" + loc
+			printstring += loc + "\n"
 		}
 		return printstring, nil
 	}

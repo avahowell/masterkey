@@ -21,7 +21,7 @@ func TestListCommand(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if res != "Locations stored in this vault: " {
+	if res != "Locations stored in this vault: \n" {
 		t.Fatal("expected empty vault to have empty list()")
 	}
 
@@ -35,7 +35,7 @@ func TestListCommand(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if res != "Locations stored in this vault: \ntestlocation" {
+	if res != "Locations stored in this vault: \ntestlocation\n" {
 		t.Fatal("incorrect output from list cmd")
 	}
 }
@@ -222,5 +222,53 @@ func TestClipCommand(t *testing.T) {
 	}
 	if clipcontents != "testpass" {
 		t.Fatal("clip command did not copy the passphrase into the clipboard")
+	}
+}
+
+func TestSearchCommand(t *testing.T) {
+	v, err := vault.New("testpass")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	searchcmd := search(v)
+
+	_, err = searchcmd([]string{})
+	if err == nil {
+		t.Fatal("searchcmd could return an error with no args")
+	}
+
+	err = v.Add("testloc", vault.Credential{"testuser", "testpass"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	res, err := searchcmd([]string{"test"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res != "testloc\n" {
+		t.Fatal("search command did not find our credential")
+	}
+
+	err = v.Add("loc2", vault.Credential{"testuser", "testpass"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	res, err = searchcmd([]string{"loc"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res != "testloc\nloc2\n" {
+		t.Fatal("search command did not find credentials")
+	}
+
+	res, err = searchcmd([]string{"test"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res != "testloc\n" {
+		t.Fatal("search command did not find credential")
 	}
 }
