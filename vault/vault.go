@@ -34,6 +34,9 @@ var (
 	// ErrCredentialExists is returned from Add if a credential already exists
 	// at the provided location.
 	ErrCredentialExists = errors.New("credential at specified location already exists")
+
+	// ErrMetaExists is returned from AddMeta if a meta tag already exists.
+	ErrMetaExists = errors.New("meta tag already exists")
 )
 
 type (
@@ -303,7 +306,13 @@ func (v *Vault) AddMeta(location string, name string, value string) error {
 	if err != nil {
 		return err
 	}
+
+	if _, exists := cred.Meta[name]; exists {
+		return ErrMetaExists
+	}
+
 	cred.AddMeta(name, value)
+
 	return v.Edit(location, *cred)
 }
 

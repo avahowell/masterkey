@@ -34,6 +34,36 @@ func TestDeleteLocation(t *testing.T) {
 	}
 }
 
+func TestVaultAddMetaExistingMeta(t *testing.T) {
+	v, err := New("testpass")
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = v.Add("testlocation", Credential{Username: "test", Password: "test"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = v.AddMeta("testlocation", "test", "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = v.AddMeta("testlocation", "test", "test")
+	if err != ErrMetaExists {
+		t.Fatal("expected AddMeta on existing meta to return ErrMetaExists")
+	}
+}
+
+func TestVaultAddMetaNonexistingLocation(t *testing.T) {
+	v, err := New("testpass")
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = v.AddMeta("testlocation", "test", "test")
+	if err != ErrNoSuchCredential {
+		t.Fatal("expected AddMeta on non existent location to return ErrNoSuchCredential")
+	}
+}
+
 func TestVaultAddMeta(t *testing.T) {
 	v, err := New("testpass")
 	if err != nil {

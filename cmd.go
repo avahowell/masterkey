@@ -81,6 +81,13 @@ var (
 			Usage:  "delete [location]: remove [location] from the vault.",
 		}
 	}
+	addmetaCmd = func(v *vault.Vault) repl.Command {
+		return repl.Command{
+			Name:   "addmeta",
+			Action: addmeta(v),
+			Usage:  "addmeta [location] [meta name] [meta value]: add a metadata tag to the credential at [location]",
+		}
+	}
 )
 
 func deletelocation(v *vault.Vault) repl.ActionFunc {
@@ -97,6 +104,23 @@ func deletelocation(v *vault.Vault) repl.ActionFunc {
 		}
 
 		return fmt.Sprintf("%v deleted successfully.\n", location), nil
+	}
+}
+
+func addmeta(v *vault.Vault) repl.ActionFunc {
+	return func(args []string) (string, error) {
+		if len(args) != 3 {
+			return "", fmt.Errorf("addmeta requires 3 arguments. See help for usage.")
+		}
+		location := args[0]
+		metaname := args[1]
+		metaval := args[2]
+
+		if err := v.AddMeta(location, metaname, metaval); err != nil {
+			return "", err
+		}
+
+		return fmt.Sprintf("%v added to %v successfully.\n", metaname, location), nil
 	}
 }
 
@@ -194,7 +218,15 @@ func get(v *vault.Vault) repl.ActionFunc {
 			return "", err
 		}
 
-		return fmt.Sprintf("Username: %v\nPassword: %v\n", cred.Username, cred.Password), nil
+		printstring := fmt.Sprintf("Username: %v\nPassword: %v\n", cred.Username, cred.Password)
+
+		if len(cred.Meta) > 0 {
+			for metaname, metaval := range cred.Meta {
+				printstring += fmt.Sprintf("%v: %v\n", metaname, metaval)
+			}
+		}
+
+		return printstring, nil
 	}
 }
 

@@ -226,6 +226,38 @@ func TestClipCommand(t *testing.T) {
 	}
 }
 
+func TestAddMetaCommand(t *testing.T) {
+	v, err := vault.New("testpass")
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = v.Add("testlocation", vault.Credential{Username: "testusername", Password: "testpassword"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	addmetacmd := addmeta(v)
+	_, err = addmetacmd([]string{})
+	if err == nil {
+		t.Fatal("expected add meta command to return an error with no args")
+	}
+
+	_, err = addmetacmd([]string{"testlocation", "testmeta", "testmetaval"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cred, err := v.Get("testlocation")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	meta, exists := cred.Meta["testmeta"]
+	if !exists || meta != "testmetaval" {
+		t.Fatal("meta command did not correctly add meta")
+	}
+}
+
 func TestSearchCommand(t *testing.T) {
 	v, err := vault.New("testpass")
 	if err != nil {
