@@ -46,10 +46,13 @@ type (
 		secret [32]byte
 	}
 
-	// Credential defines a Username and Password to store inside the vault.
+	// Credential defines a Username and Password, and a map of Metadata to store
+	// inside the vault.
 	Credential struct {
 		Username string
 		Password string
+
+		Meta map[string]string
 	}
 )
 
@@ -293,6 +296,17 @@ func (v *Vault) Delete(location string) error {
 	return nil
 }
 
+// AddMeta adds a meta tag to the credential in the vault at `location`. `name`
+// is used for the name of the meta tag and `value` is used as its value.
+func (v *Vault) AddMeta(location string, name string, value string) error {
+	cred, err := v.Get(location)
+	if err != nil {
+		return err
+	}
+	cred.AddMeta(name, value)
+	return v.Edit(location, *cred)
+}
+
 // Locations retrieves the locations in the vault and returns them as a
 // slice of strings.
 func (v *Vault) Locations() ([]string, error) {
@@ -306,4 +320,12 @@ func (v *Vault) Locations() ([]string, error) {
 		locations = append(locations, location)
 	}
 	return locations, nil
+}
+
+// AddMeta adds a meta tag to a Credential.
+func (c *Credential) AddMeta(metaname, metavalue string) {
+	if c.Meta == nil {
+		c.Meta = make(map[string]string)
+	}
+	c.Meta[metaname] = metavalue
 }
