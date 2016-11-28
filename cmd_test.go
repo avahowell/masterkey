@@ -3,6 +3,7 @@ package main
 import (
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/atotto/clipboard"
 	"github.com/johnathanhowell/masterkey/vault"
@@ -255,6 +256,7 @@ func TestSearchCommand(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	time.Sleep(time.Millisecond * 250)
 
 	res, err = searchcmd([]string{"loc"})
 	if err != nil {

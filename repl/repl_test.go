@@ -3,9 +3,43 @@ package repl
 import (
 	"bytes"
 	"errors"
+	"reflect"
 	"testing"
 	"time"
 )
+
+func TestREPLArgQuotes(t *testing.T) {
+	r := New("test >")
+
+	var callArgs []string
+	r.AddCommand(Command{
+		Name: "testcmd",
+		Action: func(args []string) (string, error) {
+			callArgs = args
+			return "success", nil
+		},
+		Usage: "",
+	})
+
+	_, err := r.eval("testcmd \"test arg with quotes and spaces\" testarg2")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expectedArgs := []string{"test arg with quotes and spaces", "testarg2"}
+	if !reflect.DeepEqual(callArgs, expectedArgs) {
+		t.Fatalf("args incorrectly passed to repl command, got %v wanted %v\n", callArgs, expectedArgs)
+	}
+
+	_, err = r.eval("testcmd test1 test2 \"test with spaces\"")
+	if err != nil {
+		t.Fatal(err)
+	}
+	expectedArgs = []string{"test1", "test2", "test with spaces"}
+	if !reflect.DeepEqual(callArgs, expectedArgs) {
+		t.Fatalf("args incorrectly passed to repl command, got %v wanted %v\n", callArgs, expectedArgs)
+	}
+}
 
 func TestREPLLoop(t *testing.T) {
 	r := New("test >")

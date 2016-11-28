@@ -6,7 +6,8 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strings"
+
+	"github.com/mattn/go-shellwords"
 )
 
 type (
@@ -78,7 +79,10 @@ func (r *REPL) AddCommand(cmd Command) {
 
 // eval evaluates a line that was input to the REPL.
 func (r *REPL) eval(line string) (string, error) {
-	args := strings.Split(line, " ")
+	args, err := shellwords.Parse(line)
+	if err != nil {
+		return "", err
+	}
 	command := args[0]
 
 	if command == "help" {
