@@ -19,6 +19,27 @@ func die(err error) {
 	os.Exit(1)
 }
 
+func setupRepl(v *vault.Vault, vaultPath string) *repl.REPL {
+	r := repl.New(fmt.Sprintf("masterkey [%v] > ", vaultPath))
+	r.AddCommand(listCmd(v))
+	r.AddCommand(saveCmd(v, vaultPath))
+	r.AddCommand(getCmd(v))
+	r.AddCommand(addCmd(v))
+	r.AddCommand(genCmd(v))
+	r.AddCommand(editCmd(v))
+	r.AddCommand(clipCmd(v))
+	r.AddCommand(searchCmd(v))
+	r.AddCommand(addmetaCmd(v))
+	r.AddCommand(editmetaCmd(v))
+	r.OnStop(func() {
+		fmt.Println("clearing clipboard and saving vault")
+		secureclip.Clear()
+		v.Save(vaultPath)
+	})
+
+	return r
+}
+
 func main() {
 	createVault := flag.Bool("new", false, "whether to create a new vault at the specified location")
 
@@ -69,7 +90,7 @@ func main() {
 		}
 	}
 
-	r := repl.New(fmt.Sprintf("masterkey [%v] > ", vaultPath))
+	r := setupRepl(v, vaultPath)
 
 	sigchan := make(chan os.Signal, 1)
 	signal.Notify(sigchan, os.Interrupt, os.Kill)

@@ -261,15 +261,22 @@ func (v *Vault) Save(filename string) error {
 	return nil
 }
 
-// Edit replaces the credential at location with the provided `credential`.
+// Edit replaces the credential at location with the provided `credential`. If
+// credential.Meta is empty, the old credential's metadata will be used.
+// Otherwise, passing a credential with a meta map overwrites the old meta map.
 func (v *Vault) Edit(location string, credential Credential) error {
 	creds, err := v.decrypt()
 	if err != nil {
 		return err
 	}
 
-	if _, ok := creds[location]; !ok {
+	oldcred, ok := creds[location]
+	if !ok {
 		return ErrNoSuchCredential
+	}
+
+	if len(credential.Meta) == 0 && len(oldcred.Meta) > 0 {
+		credential.Meta = oldcred.Meta
 	}
 
 	creds[location] = &credential
