@@ -13,12 +13,13 @@ func TestDeleteLocation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	err = v.Delete("testlocation")
 	if err != ErrNoSuchCredential {
 		t.Fatal("expected Delete on non-existent location to return ErrNoSuchCredential")
 	}
 
-	err = v.Add("testlocation", Credential{Username: "testusername", Password: "testpassword"})
+	err = v.Add("testlocation", Credential{"testusername", "testpassword"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -31,6 +32,40 @@ func TestDeleteLocation(t *testing.T) {
 	_, err = v.Get("testlocation")
 	if err != ErrNoSuchCredential {
 		t.Fatal("vault still had credential after Delete")
+	}
+}
+
+func TestVaultEditMeta(t *testing.T) {
+	v, err := New("testpass")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = v.Add("testlocation", Credential{Username: "test", Password: "test"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = v.EditMeta("testlocation", "test", "test1")
+	if err != ErrMetaDoesNotExist {
+		t.Fatal("expected EditMeta on nonexistent meta to return ErrMetaDoesNotExist")
+	}
+	err = v.AddMeta("testlocation", "test", "test1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = v.EditMeta("testlocation", "test", "test2")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cred, err := v.Get("testlocation")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	meta, exists := cred.Meta["test"]
+	if !exists || meta != "test2" {
+		t.Fatal("vault.EditMeta did not update the meta data")
 	}
 }
 
@@ -84,6 +119,35 @@ func TestVaultAddMeta(t *testing.T) {
 	meta, exists := cred.Meta["2fa"]
 	if !exists || meta != "thisisa2fatoken" {
 		t.Fatal("vault.AddMeta did not add metadata to the credential at testlocation")
+	}
+}
+
+func TestEditWithMeta(t *testing.T) {
+	v, err := New("testpass")
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = v.Add("testlocation", Credential{Username: "testusername", Password: "testpassword"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = v.AddMeta("testlocation", "testmeta", "testmetaval")
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = v.Edit("testlocation", Credential{Username: "testusername2", Password: "testpassword2"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cred, err := v.Get("testlocation")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	meta, exists := cred.Meta["testmeta"]
+	if !exists || meta != "testmetaval" {
+		t.Fatal("credential missing metadata after edit call")
 	}
 }
 

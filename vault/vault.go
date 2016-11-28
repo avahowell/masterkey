@@ -37,6 +37,10 @@ var (
 
 	// ErrMetaExists is returned from AddMeta if a meta tag already exists.
 	ErrMetaExists = errors.New("meta tag already exists")
+
+	// ErrMetaDoesNotExist is returned from Editmeta if a meta tag does not
+	// exist.
+	ErrMetaDoesNotExist = errors.New("meta tag does not exist")
 )
 
 type (
@@ -313,6 +317,22 @@ func (v *Vault) AddMeta(location string, name string, value string) error {
 
 	cred.AddMeta(name, value)
 
+	return v.Edit(location, *cred)
+}
+
+// EditMeta changes a meta tag at a given location and meta tag name to
+// `newvalue`.
+func (v *Vault) EditMeta(location string, name string, newvalue string) error {
+	cred, err := v.Get(location)
+	if err != nil {
+		return err
+	}
+
+	if _, exists := cred.Meta[name]; !exists {
+		return ErrMetaDoesNotExist
+	}
+
+	cred.Meta[name] = newvalue
 	return v.Edit(location, *cred)
 }
 
