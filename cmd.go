@@ -88,6 +88,14 @@ var (
 			Usage:  "addmeta [location] [meta name] [meta value]: add a metadata tag to the credential at [location]",
 		}
 	}
+
+	editmetaCmd = func(v *vault.Vault) repl.Command {
+		return repl.Command{
+			Name:   "editmeta",
+			Action: editmeta(v),
+			Usage:  "editmeta [location] [meta name] [new meta value]: edit an existing metadata tag at [location].",
+		}
+	}
 )
 
 func deletelocation(v *vault.Vault) repl.ActionFunc {
@@ -104,6 +112,23 @@ func deletelocation(v *vault.Vault) repl.ActionFunc {
 		}
 
 		return fmt.Sprintf("%v deleted successfully.\n", location), nil
+	}
+}
+
+func editmeta(v *vault.Vault) repl.ActionFunc {
+	return func(args []string) (string, error) {
+		if len(args) != 3 {
+			return "", fmt.Errorf("editmeta requires 3 arguments. See help for usage.")
+		}
+		location := args[0]
+		metaname := args[1]
+		metaval := args[2]
+
+		if err := v.EditMeta(location, metaname, metaval); err != nil {
+			return "", err
+		}
+
+		return fmt.Sprintf("%v updated successfully.\n", metaname), nil
 	}
 }
 

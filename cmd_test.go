@@ -258,6 +258,41 @@ func TestAddMetaCommand(t *testing.T) {
 	}
 }
 
+func TestEditMetaCommand(t *testing.T) {
+	v, err := vault.New("testpass")
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = v.Add("testlocation", vault.Credential{Username: "testusername", Password: "testpassword"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = v.AddMeta("testlocation", "test", "test1")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	editmetacmd := editmeta(v)
+	_, err = editmetacmd([]string{})
+	if err == nil {
+		t.Fatal("expected edit meta command to return an error with no args")
+	}
+
+	_, err = editmetacmd([]string{"testlocation", "test", "test2"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cred, err := v.Get("testlocation")
+	if err != nil {
+		t.Fatal(err)
+	}
+	meta, exists := cred.Meta["test"]
+	if !exists || meta != "test2" {
+		t.Fatal("edit meta command did not update the meta val")
+	}
+}
+
 func TestSearchCommand(t *testing.T) {
 	v, err := vault.New("testpass")
 	if err != nil {
