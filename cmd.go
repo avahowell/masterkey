@@ -73,7 +73,32 @@ var (
 			Usage:  "search [searchtext]: search the vault for locations containing searchtext",
 		}
 	}
+
+	deleteCmd = func(v *vault.Vault) repl.Command {
+		return repl.Command{
+			Name:   "delete",
+			Action: deletelocation(v),
+			Usage:  "delete [location]: remove [location] from the vault.",
+		}
+	}
 )
+
+func deletelocation(v *vault.Vault) repl.ActionFunc {
+	return func(args []string) (string, error) {
+		if len(args) != 1 {
+			return "", fmt.Errorf("delete requires 1 argument. See help for usage.")
+		}
+
+		location := args[0]
+
+		err := v.Delete(location)
+		if err != nil {
+			return "", err
+		}
+
+		return fmt.Sprintf("%v deleted successfully.\n", location), nil
+	}
+}
 
 func search(v *vault.Vault) repl.ActionFunc {
 	return func(args []string) (string, error) {

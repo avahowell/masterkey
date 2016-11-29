@@ -86,6 +86,7 @@ func main() {
 	r.AddCommand(editCmd(v))
 	r.AddCommand(clipCmd(v))
 	r.AddCommand(searchCmd(v))
+	r.AddCommand(deleteCmd(v))
 	r.OnStop(func() {
 		fmt.Println("clearing clipboard and saving vault")
 		secureclip.Clear()

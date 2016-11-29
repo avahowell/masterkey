@@ -275,3 +275,32 @@ func TestSearchCommand(t *testing.T) {
 		t.Fatal("search command did not find credential")
 	}
 }
+
+func TestDeleteCommand(t *testing.T) {
+	v, err := vault.New("testpass")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	deletecmd := deletelocation(v)
+
+	_, err = deletecmd([]string{})
+	if err == nil {
+		t.Fatal("deletecmd should return an error with no args")
+	}
+
+	err = v.Add("testlocation", vault.Credential{Username: "testuser", Password: "testpass"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = deletecmd([]string{"testlocation"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = v.Get("testlocation")
+	if err != vault.ErrNoSuchCredential {
+		t.Fatal("credential existed after deletecmd")
+	}
+}
