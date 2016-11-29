@@ -8,6 +8,33 @@ import (
 	"testing"
 )
 
+func TestDeleteLocation(t *testing.T) {
+	v, err := New("testpass")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = v.Delete("testlocation")
+	if err != ErrNoSuchCredential {
+		t.Fatal("expected Delete on non-existent location to return ErrNoSuchCredential")
+	}
+
+	err = v.Add("testlocation", Credential{"testusername", "testpassword"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = v.Delete("testlocation")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = v.Get("testlocation")
+	if err != ErrNoSuchCredential {
+		t.Fatal("vault still had credential after Delete")
+	}
+}
+
 func TestEditLocationNonexisting(t *testing.T) {
 	v, err := New("testpass")
 	if err != nil {
