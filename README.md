@@ -18,19 +18,29 @@ Enter a passphrase for vault.db:
 Enter the same passphrase again:
 masterkey [vault.db] >
 masterkey [vault.db] > help
-gen [location] [username]: generate a password and add it to the vault
-edit [location] [username] [password]: change the credentials at location to username, password
-clip [location]: copy the password at location to the clipboard.
-search [searchtext]: search the vault for locations containing searchtext
-list: list the credentials stored inside this vault
 save: save the changes in this vault to disk
+clip [location]: copy the password at location to the clipboard.
+addmeta [location] [meta name] [meta value]: add a metadata tag to the credential at [location]
+edit [location] [username] [password]: change the credentials at location to username, password
+search [searchtext]: search the vault for locations containing searchtext
+editmeta [location] [meta name] [new meta value]: edit an existing metadata tag at [location].
+deletemeta [location] [meta name]: delete an existing metadata tag at [location].
+list: list the credentials stored inside this vault
 get [location]: get the credential at [location]
-add [location] [username] [password]: add a credential to the vaul
+add [location] [username] [password]: add a credential to the vault
+gen [location] [username]: generate a password and add it to the vault
+delete [location]: remove [location] from the vault.
 masterkey [vault.db] > gen github.com johnathanhowell
 github.com generated successfully
 masterkey [vault.db] > get github.com
 Username: johnathanhowell
 Password: speedy dwindling bicycle cedar putty urgent myriad ensign jaws gambit digit usual
+masterkey [vault.db] > addmeta github.com 2fa "pretty secure 2fa token"
+2fa added to github.com successfully.
+masterkey [vault.db] > get github.com
+Username: johnathanhowell
+Password: speedy dwindling bicycle cedar putty urgent myriad ensign jaws gambit digit usual
+2fa: pretty secure token
 masterkey [vault.db] > clip github.com
 github.com copied to clipboard, will clear in 30 seconds
 masterkey [vault.db] > exit
