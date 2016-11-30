@@ -3,13 +3,13 @@ package vault
 import (
 	"bytes"
 	"crypto/rand"
+	"encoding/gob"
 	"errors"
 	"io"
 	"io/ioutil"
 	"os"
 	"path"
 
-	"encoding/gob"
 	"github.com/NebulousLabs/entropy-mnemonics"
 	"golang.org/x/crypto/nacl/secretbox"
 	"golang.org/x/crypto/scrypt"
