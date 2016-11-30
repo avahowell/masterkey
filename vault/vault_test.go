@@ -35,6 +35,42 @@ func TestDeleteLocation(t *testing.T) {
 	}
 }
 
+func TestVaultDeleteMeta(t *testing.T) {
+	v, err := New("testpass")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = v.Add("testlocation", Credential{Username: "testuser", Password: "testpassword"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = v.DeleteMeta("testlocation", "test")
+	if err != ErrMetaDoesNotExist {
+		t.Fatal("delete on nonexistent meta did not return ErrMetaDoesNotExist")
+	}
+
+	err = v.AddMeta("testlocation", "test", "test1")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = v.DeleteMeta("testlocation", "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cred, err := v.Get("testlocation")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if _, exists := cred.Meta["test"]; exists {
+		t.Fatal("credential still had meta after DeleteMeta")
+	}
+}
+
 func TestVaultEditMeta(t *testing.T) {
 	v, err := New("testpass")
 	if err != nil {
