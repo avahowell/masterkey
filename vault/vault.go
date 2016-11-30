@@ -308,7 +308,10 @@ func (v *Vault) AddMeta(location string, name string, value string) error {
 		return ErrMetaExists
 	}
 
-	cred.AddMeta(name, value)
+	if cred.Meta == nil {
+		cred.Meta = make(map[string]string)
+	}
+	cred.Meta[name] = value
 	creds[location] = cred
 
 	return v.encrypt(creds)
@@ -372,12 +375,4 @@ func (v *Vault) Locations() ([]string, error) {
 		locations = append(locations, location)
 	}
 	return locations, nil
-}
-
-// AddMeta adds a meta tag to a Credential.
-func (c *Credential) AddMeta(metaname, metavalue string) {
-	if c.Meta == nil {
-		c.Meta = make(map[string]string)
-	}
-	c.Meta[metaname] = metavalue
 }

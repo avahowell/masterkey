@@ -187,15 +187,6 @@ func TestEditWithMeta(t *testing.T) {
 	}
 }
 
-func TestCredentialAddMeta(t *testing.T) {
-	cred := &Credential{Username: "testuser", Password: "testpassword"}
-	cred.AddMeta("foo", "bar")
-	meta, exists := cred.Meta["foo"]
-	if !exists || meta != "bar" {
-		t.Fatal("AddMeta did not add our meta tag to the credential")
-	}
-}
-
 func TestEditLocationNonexisting(t *testing.T) {
 	v, err := New("testpass")
 	if err != nil {
