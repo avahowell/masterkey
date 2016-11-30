@@ -371,3 +371,41 @@ func TestDeleteCommand(t *testing.T) {
 		t.Fatal("credential existed after deletecmd")
 	}
 }
+
+func TestDeleteMetaCommand(t *testing.T) {
+	v, err := vault.New("testpass")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	deletemetacmd := deletemeta(v)
+
+	_, err = deletemetacmd([]string{})
+	if err == nil {
+		t.Fatal("deletemeta should return an error with no args")
+	}
+
+	err = v.Add("testlocation", vault.Credential{Username: "testuser", Password: "testpass"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = v.AddMeta("testlocation", "testmeta", "testval")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = deletemetacmd([]string{"testlocation", "testmeta"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cred, err := v.Get("testlocation")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if _, exists := cred.Meta["testmeta"]; exists {
+		t.Fatal("credential still had meta after delete command")
+	}
+}

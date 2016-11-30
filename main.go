@@ -31,6 +31,7 @@ func setupRepl(v *vault.Vault, vaultPath string) *repl.REPL {
 	r.AddCommand(searchCmd(v))
 	r.AddCommand(addmetaCmd(v))
 	r.AddCommand(editmetaCmd(v))
+	r.AddCommand(deletemetaCmd(v))
 	r.OnStop(func() {
 		fmt.Println("clearing clipboard and saving vault")
 		secureclip.Clear()

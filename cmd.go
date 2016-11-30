@@ -96,7 +96,33 @@ var (
 			Usage:  "editmeta [location] [meta name] [new meta value]: edit an existing metadata tag at [location].",
 		}
 	}
+
+	deletemetaCmd = func(v *vault.Vault) repl.Command {
+		return repl.Command{
+			Name:   "deletemeta",
+			Action: deletemeta(v),
+			Usage:  "deletemeta [location] [meta name]: delete an existing metadata tag at [location].",
+		}
+	}
 )
+
+func deletemeta(v *vault.Vault) repl.ActionFunc {
+	return func(args []string) (string, error) {
+		if len(args) != 2 {
+			return "", fmt.Errorf("deletemeta requires 2 arguments. See help for usage.")
+		}
+
+		location := args[0]
+		metaname := args[1]
+
+		err := v.DeleteMeta(location, metaname)
+		if err != nil {
+			return "", err
+		}
+
+		return fmt.Sprintf("%v deleted from %v successfully.\n", metaname, location), nil
+	}
+}
 
 func deletelocation(v *vault.Vault) repl.ActionFunc {
 	return func(args []string) (string, error) {
