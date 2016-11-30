@@ -236,8 +236,9 @@ func (v *Vault) Save(filename string) error {
 	if err != nil {
 		return err
 	}
+	defer tempfile.Close()
 
-	_, err = io.Copy(tempfile, bytes.NewBuffer(v.data))
+	_, err = tempfile.Write(v.data)
 	if err != nil {
 		return err
 	}
