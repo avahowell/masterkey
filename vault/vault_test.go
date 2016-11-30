@@ -19,7 +19,7 @@ func TestDeleteLocation(t *testing.T) {
 		t.Fatal("expected Delete on non-existent location to return ErrNoSuchCredential")
 	}
 
-	err = v.Add("testlocation", Credential{"testusername", "testpassword"})
+	err = v.Add("testlocation", Credential{Username: "testusername", Password: "testpassword"})
 	if err != nil {
 		t.Fatal(err)
 	}
