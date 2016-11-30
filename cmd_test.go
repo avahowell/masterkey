@@ -329,7 +329,8 @@ func TestSearchCommand(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if res != "testloc\nloc2\n" {
+	// Both orders are fine.
+	if res != "testloc\nloc2\n" && res != "loc2\ntestloc\n" {
 		t.Log(res)
 		t.Fatal("search command did not find credentials")
 	}

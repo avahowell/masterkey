@@ -3,13 +3,13 @@ package vault
 import (
 	"bytes"
 	"crypto/rand"
+	"encoding/gob"
 	"errors"
 	"io"
 	"io/ioutil"
 	"os"
 	"path"
 
-	"encoding/gob"
 	"github.com/NebulousLabs/entropy-mnemonics"
 	"golang.org/x/crypto/nacl/secretbox"
 	"golang.org/x/crypto/scrypt"
@@ -96,19 +96,13 @@ func New(passphrase string) (*Vault, error) {
 // vault is re-encrypted, ensuring nonces are unique and not reused across
 // sessions.
 func Open(filename string, passphrase string) (*Vault, error) {
-	f, err := os.Open(filename)
-	if err != nil {
-		return nil, err
-	}
-
-	var encryptedData bytes.Buffer
-	_, err = io.Copy(&encryptedData, f)
+	bs, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return nil, err
 	}
 
 	var nonce [24]byte
-	copy(nonce[:], encryptedData.Bytes()[:24])
+	copy(nonce[:], bs[:24])
 
 	key, err := scrypt.Key([]byte(passphrase), nonce[:], scryptN, scryptR, scryptP, keyLen)
 	if err != nil {
@@ -119,7 +113,7 @@ func Open(filename string, passphrase string) (*Vault, error) {
 	copy(secret[:], key)
 
 	vault := &Vault{
-		data:   encryptedData.Bytes(),
+		data:   bs,
 		nonce:  nonce,
 		secret: secret,
 	}
@@ -242,8 +236,14 @@ func (v *Vault) Save(filename string) error {
 	if err != nil {
 		return err
 	}
+	defer tempfile.Close()
 
-	_, err = io.Copy(tempfile, bytes.NewBuffer(v.data))
+	_, err = tempfile.Write(v.data)
+	if err != nil {
+		return err
+	}
+
+	err = tempfile.Sync()
 	if err != nil {
 		return err
 	}
