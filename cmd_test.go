@@ -26,7 +26,7 @@ func TestListCommand(t *testing.T) {
 		t.Fatal("expected empty vault to have empty list()")
 	}
 
-	err = v.Add("testlocation", vault.Credential{"testuser", "testpass"})
+	err = v.Add("testlocation", vault.Credential{Username: "testuser", Password: "testpass"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -128,7 +128,7 @@ func TestSaveCommand(t *testing.T) {
 
 	savecmd := save(v, "testvault")
 
-	testcredential := vault.Credential{"testuser", "testpass"}
+	testcredential := vault.Credential{Username: "testuser", Password: "testpass"}
 
 	err = v.Add("testlocation", testcredential)
 	if err != nil {
@@ -204,7 +204,7 @@ func TestClipCommand(t *testing.T) {
 		t.Fatal("clipcmd should return an error with no args")
 	}
 
-	err = v.Add("testlocation", vault.Credential{"testuser", "testpass"})
+	err = v.Add("testlocation", vault.Credential{Username: "testuser", Password: "testpass"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -226,6 +226,73 @@ func TestClipCommand(t *testing.T) {
 	}
 }
 
+func TestAddMetaCommand(t *testing.T) {
+	v, err := vault.New("testpass")
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = v.Add("testlocation", vault.Credential{Username: "testusername", Password: "testpassword"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	addmetacmd := addmeta(v)
+	_, err = addmetacmd([]string{})
+	if err == nil {
+		t.Fatal("expected add meta command to return an error with no args")
+	}
+
+	_, err = addmetacmd([]string{"testlocation", "testmeta", "testmetaval"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cred, err := v.Get("testlocation")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	meta, exists := cred.Meta["testmeta"]
+	if !exists || meta != "testmetaval" {
+		t.Fatal("meta command did not correctly add meta")
+	}
+}
+
+func TestEditMetaCommand(t *testing.T) {
+	v, err := vault.New("testpass")
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = v.Add("testlocation", vault.Credential{Username: "testusername", Password: "testpassword"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = v.AddMeta("testlocation", "test", "test1")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	editmetacmd := editmeta(v)
+	_, err = editmetacmd([]string{})
+	if err == nil {
+		t.Fatal("expected edit meta command to return an error with no args")
+	}
+
+	_, err = editmetacmd([]string{"testlocation", "test", "test2"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cred, err := v.Get("testlocation")
+	if err != nil {
+		t.Fatal(err)
+	}
+	meta, exists := cred.Meta["test"]
+	if !exists || meta != "test2" {
+		t.Fatal("edit meta command did not update the meta val")
+	}
+}
+
 func TestSearchCommand(t *testing.T) {
 	v, err := vault.New("testpass")
 	if err != nil {
@@ -239,7 +306,7 @@ func TestSearchCommand(t *testing.T) {
 		t.Fatal("searchcmd could return an error with no args")
 	}
 
-	err = v.Add("testloc", vault.Credential{"testuser", "testpass"})
+	err = v.Add("testloc", vault.Credential{Username: "testuser", Password: "testpass"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -252,7 +319,7 @@ func TestSearchCommand(t *testing.T) {
 		t.Fatal("search command did not find our credential")
 	}
 
-	err = v.Add("loc2", vault.Credential{"testuser", "testpass"})
+	err = v.Add("loc2", vault.Credential{Username: "testuser", Password: "testpass"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -302,5 +369,43 @@ func TestDeleteCommand(t *testing.T) {
 	_, err = v.Get("testlocation")
 	if err != vault.ErrNoSuchCredential {
 		t.Fatal("credential existed after deletecmd")
+	}
+}
+
+func TestDeleteMetaCommand(t *testing.T) {
+	v, err := vault.New("testpass")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	deletemetacmd := deletemeta(v)
+
+	_, err = deletemetacmd([]string{})
+	if err == nil {
+		t.Fatal("deletemeta should return an error with no args")
+	}
+
+	err = v.Add("testlocation", vault.Credential{Username: "testuser", Password: "testpass"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = v.AddMeta("testlocation", "testmeta", "testval")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = deletemetacmd([]string{"testlocation", "testmeta"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cred, err := v.Get("testlocation")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if _, exists := cred.Meta["testmeta"]; exists {
+		t.Fatal("credential still had meta after delete command")
 	}
 }

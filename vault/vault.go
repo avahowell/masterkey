@@ -34,6 +34,13 @@ var (
 	// ErrCredentialExists is returned from Add if a credential already exists
 	// at the provided location.
 	ErrCredentialExists = errors.New("credential at specified location already exists")
+
+	// ErrMetaExists is returned from AddMeta if a meta tag already exists.
+	ErrMetaExists = errors.New("meta tag already exists")
+
+	// ErrMetaDoesNotExist is returned from Editmeta if a meta tag does not
+	// exist.
+	ErrMetaDoesNotExist = errors.New("meta tag does not exist")
 )
 
 type (
@@ -46,10 +53,13 @@ type (
 		secret [32]byte
 	}
 
-	// Credential defines a Username and Password to store inside the vault.
+	// Credential defines a Username and Password, and a map of Metadata to store
+	// inside the vault.
 	Credential struct {
 		Username string
 		Password string
+
+		Meta map[string]string
 	}
 )
 
@@ -208,12 +218,7 @@ func (v *Vault) Add(location string, credential Credential) error {
 
 	creds[location] = &credential
 
-	err = v.encrypt(creds)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return v.encrypt(creds)
 }
 
 // Get retrieves a Credential at the provided `location`.
@@ -251,25 +256,23 @@ func (v *Vault) Save(filename string) error {
 	return nil
 }
 
-// Edit replaces the credential at location with the provided `credential`.
+// Edit replaces the credential at location with the provided `credential`. The
+// metadata from the old credential is preserved.
 func (v *Vault) Edit(location string, credential Credential) error {
 	creds, err := v.decrypt()
 	if err != nil {
 		return err
 	}
 
-	if _, ok := creds[location]; !ok {
+	oldcred, ok := creds[location]
+	if !ok {
 		return ErrNoSuchCredential
 	}
 
+	credential.Meta = oldcred.Meta
 	creds[location] = &credential
 
-	err = v.encrypt(creds)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return v.encrypt(creds)
 }
 
 // Delete removes the credential at `location`.
@@ -285,12 +288,78 @@ func (v *Vault) Delete(location string) error {
 
 	delete(creds, location)
 
-	err = v.encrypt(creds)
+	return v.encrypt(creds)
+}
+
+// AddMeta adds a meta tag to the credential in the vault at `location`. `name`
+// is used for the name of the meta tag and `value` is used as its value.
+func (v *Vault) AddMeta(location string, name string, value string) error {
+	creds, err := v.decrypt()
 	if err != nil {
 		return err
 	}
 
-	return nil
+	cred, exists := creds[location]
+	if !exists {
+		return ErrNoSuchCredential
+	}
+
+	if _, exists = cred.Meta[name]; exists {
+		return ErrMetaExists
+	}
+
+	if cred.Meta == nil {
+		cred.Meta = make(map[string]string)
+	}
+	cred.Meta[name] = value
+	creds[location] = cred
+
+	return v.encrypt(creds)
+}
+
+// EditMeta changes a meta tag at a given location and meta tag name to
+// `newvalue`.
+func (v *Vault) EditMeta(location string, name string, newvalue string) error {
+	creds, err := v.decrypt()
+	if err != nil {
+		return err
+	}
+
+	cred, exists := creds[location]
+	if !exists {
+		return ErrNoSuchCredential
+	}
+
+	if _, exists = cred.Meta[name]; !exists {
+		return ErrMetaDoesNotExist
+	}
+
+	cred.Meta[name] = newvalue
+	creds[location] = cred
+
+	return v.encrypt(creds)
+}
+
+// DeleteMeta removes a meta tag from the credential at `location`.
+func (v *Vault) DeleteMeta(location string, metaname string) error {
+	creds, err := v.decrypt()
+	if err != nil {
+		return err
+	}
+
+	cred, exists := creds[location]
+	if !exists {
+		return ErrNoSuchCredential
+	}
+
+	if _, exists = cred.Meta[metaname]; !exists {
+		return ErrMetaDoesNotExist
+	}
+
+	delete(cred.Meta, metaname)
+	creds[location] = cred
+
+	return v.encrypt(creds)
 }
 
 // Locations retrieves the locations in the vault and returns them as a

@@ -19,7 +19,7 @@ func TestDeleteLocation(t *testing.T) {
 		t.Fatal("expected Delete on non-existent location to return ErrNoSuchCredential")
 	}
 
-	err = v.Add("testlocation", Credential{"testusername", "testpassword"})
+	err = v.Add("testlocation", Credential{Username: "testusername", Password: "testpassword"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -35,13 +35,165 @@ func TestDeleteLocation(t *testing.T) {
 	}
 }
 
+func TestVaultDeleteMeta(t *testing.T) {
+	v, err := New("testpass")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = v.Add("testlocation", Credential{Username: "testuser", Password: "testpassword"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = v.DeleteMeta("testlocation", "test")
+	if err != ErrMetaDoesNotExist {
+		t.Fatal("delete on nonexistent meta did not return ErrMetaDoesNotExist")
+	}
+
+	err = v.AddMeta("testlocation", "test", "test1")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = v.DeleteMeta("testlocation", "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cred, err := v.Get("testlocation")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if _, exists := cred.Meta["test"]; exists {
+		t.Fatal("credential still had meta after DeleteMeta")
+	}
+}
+
+func TestVaultEditMeta(t *testing.T) {
+	v, err := New("testpass")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = v.Add("testlocation", Credential{Username: "test", Password: "test"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = v.EditMeta("testlocation", "test", "test1")
+	if err != ErrMetaDoesNotExist {
+		t.Fatal("expected EditMeta on nonexistent meta to return ErrMetaDoesNotExist")
+	}
+	err = v.AddMeta("testlocation", "test", "test1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = v.EditMeta("testlocation", "test", "test2")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cred, err := v.Get("testlocation")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	meta, exists := cred.Meta["test"]
+	if !exists || meta != "test2" {
+		t.Fatal("vault.EditMeta did not update the meta data")
+	}
+}
+
+func TestVaultAddMetaExistingMeta(t *testing.T) {
+	v, err := New("testpass")
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = v.Add("testlocation", Credential{Username: "test", Password: "test"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = v.AddMeta("testlocation", "test", "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = v.AddMeta("testlocation", "test", "test")
+	if err != ErrMetaExists {
+		t.Fatal("expected AddMeta on existing meta to return ErrMetaExists")
+	}
+}
+
+func TestVaultAddMetaNonexistingLocation(t *testing.T) {
+	v, err := New("testpass")
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = v.AddMeta("testlocation", "test", "test")
+	if err != ErrNoSuchCredential {
+		t.Fatal("expected AddMeta on non existent location to return ErrNoSuchCredential")
+	}
+}
+
+func TestVaultAddMeta(t *testing.T) {
+	v, err := New("testpass")
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = v.Add("testlocation", Credential{Username: "testuser", Password: "testpassword"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = v.AddMeta("testlocation", "2fa", "thisisa2fatoken")
+	if err != nil {
+		t.Fatal(err)
+	}
+	cred, err := v.Get("testlocation")
+	if err != nil {
+		t.Fatal(err)
+	}
+	meta, exists := cred.Meta["2fa"]
+	if !exists || meta != "thisisa2fatoken" {
+		t.Fatal("vault.AddMeta did not add metadata to the credential at testlocation")
+	}
+}
+
+func TestEditWithMeta(t *testing.T) {
+	v, err := New("testpass")
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = v.Add("testlocation", Credential{Username: "testusername", Password: "testpassword"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = v.AddMeta("testlocation", "testmeta", "testmetaval")
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = v.Edit("testlocation", Credential{Username: "testusername2", Password: "testpassword2"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cred, err := v.Get("testlocation")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	meta, exists := cred.Meta["testmeta"]
+	if !exists || meta != "testmetaval" {
+		t.Fatal("credential missing metadata after edit call")
+	}
+}
+
 func TestEditLocationNonexisting(t *testing.T) {
 	v, err := New("testpass")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = v.Edit("testlocation", Credential{"testusername", "testpassword"})
+	err = v.Edit("testlocation", Credential{Username: "testusername", Password: "testpassword"})
 	if err != ErrNoSuchCredential {
 		t.Fatal("expected Edit on non-existent location to return ErrNoSuchCredential")
 	}
@@ -53,12 +205,12 @@ func TestEditLocation(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = v.Add("testlocation", Credential{"testusername", "testpassword"})
+	err = v.Add("testlocation", Credential{Username: "testusername", Password: "testpassword"})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = v.Edit("testlocation", Credential{"testusername2", "testpassword2"})
+	err = v.Edit("testlocation", Credential{Username: "testusername2", Password: "testpassword2"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -90,7 +242,7 @@ func TestAddInvalidKey(t *testing.T) {
 		t.Fatal(err)
 	}
 	v.secret = [32]byte{}
-	if err = v.Add("testlocation", Credential{"test", "test2"}); err != ErrCouldNotDecrypt {
+	if err = v.Add("testlocation", Credential{Username: "test", Password: "test2"}); err != ErrCouldNotDecrypt {
 		t.Fatal("expected v.Add to return ErrCouldNotDecrypt with invalid secret")
 	}
 }
@@ -108,7 +260,7 @@ func TestHeavyVault(t *testing.T) {
 	}
 
 	for i := 0; i < size; i++ {
-		err = v.Add(fmt.Sprintf("testlocation%v", i), Credential{"testuser", "testpassword"})
+		err = v.Add(fmt.Sprintf("testlocation%v", i), Credential{Username: "testuser", Password: "testpassword"})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -168,7 +320,7 @@ func TestGenerateExisting(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = v.Add("testlocation", Credential{"testuser", "testpass"})
+	err = v.Add("testlocation", Credential{Username: "testuser", Password: "testpass"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -180,9 +332,9 @@ func TestGenerateExisting(t *testing.T) {
 
 func TestGetLocations(t *testing.T) {
 	creds := []Credential{
-		{"test1", "testpass1"},
-		{"test2", "testpass2"},
-		{"test3", "testpass3"},
+		{Username: "test1", Password: "testpass1"},
+		{Username: "test2", Password: "testpass2"},
+		{Username: "test3", Password: "testpass3"},
 	}
 	locs := []string{"testloc1", "testloc2", "testloc3"}
 
@@ -218,7 +370,7 @@ func TestGetNonexisting(t *testing.T) {
 }
 
 func TestAddExisting(t *testing.T) {
-	testCredential := Credential{"testuser", "testpass"}
+	testCredential := Credential{Username: "testuser", Password: "testpass"}
 	v, err := New("testpass")
 	if err != nil {
 		t.Fatal(err)
@@ -234,7 +386,7 @@ func TestAddExisting(t *testing.T) {
 }
 
 func TestNewSaveOpen(t *testing.T) {
-	testCredential := Credential{"testuser", "testpass"}
+	testCredential := Credential{Username: "testuser", Password: "testpass"}
 
 	v, err := New("testpass")
 	if err != nil {
@@ -269,7 +421,7 @@ func TestNewSaveOpen(t *testing.T) {
 }
 
 func TestNonceRotation(t *testing.T) {
-	testCredential := Credential{"testuser", "testpass"}
+	testCredential := Credential{Username: "testuser", Password: "testpass"}
 
 	v, err := New("testpass")
 	if err != nil {
@@ -299,12 +451,8 @@ func TestNonceRotation(t *testing.T) {
 }
 
 func BenchmarkVaultAdd(b *testing.B) {
-	v, err := New("testpass")
-	if err != nil {
-	}
+	v, _ := New("testpass")
 	for i := 0; i < b.N; i++ {
-		err = v.Add(fmt.Sprintf("testlocation%v", i), Credential{"testuser", "testpass"})
-		if err != nil {
-		}
+		v.Add(fmt.Sprintf("testlocation%v", i), Credential{Username: "testuser", Password: "testpass"})
 	}
 }
