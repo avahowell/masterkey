@@ -213,7 +213,7 @@ func TestClipCommand(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if res != "testlocation copied to clipboard, will clear in 30 seconds\n" {
+	if res != "testlocation copied password to clipboard, will clear in 30 seconds\n" {
 		t.Fatal("clip command should return success string")
 	}
 
@@ -234,7 +234,7 @@ func TestClipCommand(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if res != "testlocation copied to clipboard, will clear in 30 seconds\n" {
+	if res != "testlocation copied test to clipboard, will clear in 30 seconds\n" {
 		t.Fatal("clip command should return success string")
 	}
 

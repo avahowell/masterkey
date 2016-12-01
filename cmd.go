@@ -210,6 +210,7 @@ func clip(v *vault.Vault) repl.ActionFunc {
 		}
 
 		toClip := cred.Password
+		clipType := "password"
 		if len(args) > 1 {
 			meta := args[1]
 			metaval, exists := cred.Meta[meta]
@@ -217,13 +218,14 @@ func clip(v *vault.Vault) repl.ActionFunc {
 				return "", fmt.Errorf("%v metadata tag not found.", meta)
 			}
 			toClip = metaval
+			clipType = meta
 		}
 
 		err = secureclip.Clip(toClip)
 		if err != nil {
 			return "", err
 		}
-		return fmt.Sprintf("%v copied to clipboard, will clear in 30 seconds\n", location), nil
+		return fmt.Sprintf("%v copied %v to clipboard, will clear in 30 seconds\n", location, clipType), nil
 	}
 }
 
