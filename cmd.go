@@ -62,7 +62,7 @@ var (
 		return repl.Command{
 			Name:   "clip",
 			Action: clip(v),
-			Usage:  "clip [location]: copy the password at location to the clipboard.",
+			Usage:  "clip [location] [metatag]: copy the password at location to the clipboard. metatag optional",
 		}
 	}
 
@@ -199,8 +199,8 @@ func search(v *vault.Vault) repl.ActionFunc {
 
 func clip(v *vault.Vault) repl.ActionFunc {
 	return func(args []string) (string, error) {
-		if len(args) != 1 {
-			return "", fmt.Errorf("clip requires 1 argument. See help for usage.")
+		if len(args) < 1 {
+			return "", fmt.Errorf("clip requires at least 1 argument. See help for usage.")
 		}
 
 		location := args[0]
@@ -208,7 +208,19 @@ func clip(v *vault.Vault) repl.ActionFunc {
 		if err != nil {
 			return "", err
 		}
-		err = secureclip.Clip(cred.Password)
+
+		var toClip string
+		if len(args) > 1 {
+			meta := args[1]
+			if val, ok := cred.Meta[meta]; ok {
+				toClip = val
+			} else {
+				return "", fmt.Errorf("%v metadata tag not found.")
+			}
+		} else {
+			toClip = cred.Password
+		}
+		err = secureclip.Clip(toClip)
 		if err != nil {
 			return "", err
 		}

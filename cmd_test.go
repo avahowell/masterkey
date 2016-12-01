@@ -224,6 +224,27 @@ func TestClipCommand(t *testing.T) {
 	if clipcontents != "testpass" {
 		t.Fatal("clip command did not copy the passphrase into the clipboard")
 	}
+
+	err = v.AddMeta("testlocation", "test", "test1")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	res, err = clipcmd([]string{"testlocation", "test"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res != "testlocation copied to clipboard, will clear in 30 seconds\n" {
+		t.Fatal("clip command should return success string")
+	}
+
+	clipcontents, err = clipboard.ReadAll()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if clipcontents != "test1" {
+		t.Fatal("clip command did not copy the metadata into the clipboard")
+	}
 }
 
 func TestAddMetaCommand(t *testing.T) {
