@@ -62,7 +62,7 @@ var (
 		return repl.Command{
 			Name:   "clip",
 			Action: clip(v),
-			Usage:  "clip [location] [metatag]: copy the password at location to the clipboard. metatag optional",
+			Usage:  "clip [location] [meta name]: copy the password at location to the clipboard. meta name optional",
 		}
 	}
 
