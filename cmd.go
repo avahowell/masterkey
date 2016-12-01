@@ -209,17 +209,16 @@ func clip(v *vault.Vault) repl.ActionFunc {
 			return "", err
 		}
 
-		var toClip string
+		toClip := cred.Password
 		if len(args) > 1 {
 			meta := args[1]
-			if val, ok := cred.Meta[meta]; ok {
-				toClip = val
-			} else {
-				return "", fmt.Errorf("%v metadata tag not found.")
+			metaval, exists := cred.Meta[meta]
+			if !exists {
+				return "", fmt.Errorf("%v metadata tag not found.", meta)
 			}
-		} else {
-			toClip = cred.Password
+			toClip = metaval
 		}
+
 		err = secureclip.Clip(toClip)
 		if err != nil {
 			return "", err
