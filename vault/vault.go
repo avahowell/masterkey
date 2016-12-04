@@ -3,8 +3,10 @@ package vault
 import (
 	"bytes"
 	"crypto/rand"
+	"encoding/csv"
 	"encoding/gob"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -432,4 +434,68 @@ func (v *Vault) FindMeta(location string, searchtext string) (string, string, er
 	}
 
 	return "", "", ErrMetaDoesNotExist
+}
+
+// LoadCSV loads password data from a CSV file.
+func (v *Vault) LoadCSV(c io.Reader, locationField, usernameField, passwordField string) (int, error) {
+	r := csv.NewReader(c)
+
+	var header []string
+	locationFieldIndex := 0
+	usernameFieldIndex := 0
+	passwordFieldIndex := 0
+
+	nimported := 0
+
+	for {
+		record, err := r.Read()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nimported, err
+		}
+		if len(header) == 0 {
+			header = record
+			for idx, field := range record {
+				if field == locationField {
+					locationFieldIndex = idx
+				}
+				if field == usernameField {
+					usernameFieldIndex = idx
+				}
+				if field == passwordField {
+					passwordFieldIndex = idx
+				}
+			}
+			continue
+		}
+
+		location := record[locationFieldIndex]
+		cred := Credential{Username: record[usernameFieldIndex], Password: record[passwordFieldIndex]}
+
+		err = v.Add(location, cred)
+		if err != nil {
+			fmt.Printf("error importing %v: %v. skipping.\n", location, err)
+			continue
+		}
+
+		for idx, field := range record {
+			if idx == locationFieldIndex || idx == usernameFieldIndex || idx == passwordFieldIndex {
+				continue
+			}
+
+			metaname := header[idx]
+			metaval := field
+
+			err = v.AddMeta(location, metaname, metaval)
+			if err != nil {
+				return nimported, err
+			}
+		}
+
+		nimported++
+	}
+
+	return nimported, nil
 }

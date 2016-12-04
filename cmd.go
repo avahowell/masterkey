@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/johnathanhowell/masterkey/repl"
@@ -104,7 +105,41 @@ var (
 			Usage:  "deletemeta [location] [meta name]: delete an existing metadata tag at [location].",
 		}
 	}
+
+	importCmd = func(v *vault.Vault) repl.Command {
+		return repl.Command{
+			Name:   "importcsv",
+			Action: importcsv(v),
+			Usage:  "imporcsv [path to csv] [location key] [username key] [password key]: import a csv file",
+		}
+	}
 )
+
+func importcsv(v *vault.Vault) repl.ActionFunc {
+	return func(args []string) (string, error) {
+		if len(args) != 4 {
+			return "", fmt.Errorf("importcsv requires 4 arguments. See help for usage.")
+		}
+
+		filepath := args[0]
+		locationkey := args[1]
+		usernamekey := args[2]
+		passwordkey := args[3]
+
+		f, err := os.Open(filepath)
+		if err != nil {
+			return "", err
+		}
+		defer f.Close()
+
+		n, err := v.LoadCSV(f, locationkey, usernamekey, passwordkey)
+		if err != nil {
+			return "", err
+		}
+
+		return fmt.Sprintf("%v migrated successfully. %v locations imported.\n", filepath, n), nil
+	}
+}
 
 func deletemeta(v *vault.Vault) repl.ActionFunc {
 	return func(args []string) (string, error) {

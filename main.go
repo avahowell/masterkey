@@ -21,6 +21,7 @@ func die(err error) {
 
 func setupRepl(v *vault.Vault, vaultPath string) *repl.REPL {
 	r := repl.New(fmt.Sprintf("masterkey [%v] > ", vaultPath))
+	r.AddCommand(importCmd(v))
 	r.AddCommand(listCmd(v))
 	r.AddCommand(saveCmd(v, vaultPath))
 	r.AddCommand(getCmd(v))

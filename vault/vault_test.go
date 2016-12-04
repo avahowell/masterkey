@@ -5,6 +5,7 @@ import (
 	"os"
 	"reflect"
 	"sort"
+	"strings"
 	"testing"
 )
 
@@ -13,7 +14,6 @@ func TestFindMeta(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	_, _, err = v.FindMeta("testlocation", "test")
 	if err != ErrNoSuchCredential {
 		t.Fatal("expected no such credential")
@@ -45,6 +45,79 @@ func TestFindMeta(t *testing.T) {
 		t.Fatalf("meta value returned did not match: got %v wanted testmetaval\n", metaval)
 	}
 }
+func TestLoadCSV(t *testing.T) {
+	const kpcsvData = `
+"Group","Title","Username","Password","URL","Notes"
+
+"TestGroup0","testtitle0","testusername0","testpassword0","testurl0",""
+"TestGroup1","testtitle1","testusername1","testpassword1","testurl1",""
+"TestGroup2","testtitle2","testusername2","testpassword2","testurl2",""
+"TestGroup2","testtitle2","testusername2","testpassword2","testurl2",""
+"TestGroup3","testtitle3","testusername3","testpassword3","testurl3",""
+"TestGroup4","testtitle4","testusername4","testpassword4","testurl4",""
+"TestGroup3","testtitle3","testusername3","testpassword3","testurl3",""
+`
+	v, err := New("testpass")
+	if err != nil {
+		t.Fatal(err)
+	}
+	n, err := v.LoadCSV(strings.NewReader(kpcsvData), "Title", "Username", "Password")
+	locations, err := v.Locations()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(locations) != n {
+		t.Fatalf("loadcsv misreported the number of imported credentials. wanted %v got %v\n", len(locations), n)
+	}
+
+	if len(locations) != 5 {
+		t.Fatalf("wrong number of locations in vault, got %v wanted %v\n", len(locations), 5)
+	}
+
+	for i := 0; i < 5; i++ {
+		expectedLocation := fmt.Sprintf("testtitle%v", i)
+		expectedUsername := fmt.Sprintf("testusername%v", i)
+		expectedPassword := fmt.Sprintf("testpassword%v", i)
+		expectedMetaGroup := fmt.Sprintf("TestGroup%v", i)
+		expectedMetaUrl := fmt.Sprintf("testurl%v", i)
+		expectedMetaNotes := ""
+
+		cred, err := v.Get(expectedLocation)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if cred.Username != expectedUsername {
+			t.Fatal("migrated credential did not have expected username")
+		}
+
+		if cred.Password != expectedPassword {
+			t.Fatal("migrated credential did not have expected password")
+		}
+
+		if len(cred.Meta) != 3 {
+			t.Fatal("expected 3 meta fields")
+		}
+
+		for metaname, metaval := range cred.Meta {
+			if metaname == "Group" {
+				if metaval != expectedMetaGroup {
+					t.Fatal("incorrect meta value for Group meta key")
+				}
+			}
+			if metaname == "URL" {
+				if metaval != expectedMetaUrl {
+					t.Fatal("incorrect meta value for Group meta key")
+				}
+			}
+			if metaname == "Notes" {
+				if metaval != expectedMetaNotes {
+					t.Fatal("incorrect meta value for Group meta key")
+				}
+			}
+		}
+	}
+}
 
 func TestFindCredential(t *testing.T) {
 	v, err := New("testpass")
@@ -73,9 +146,6 @@ func TestFindCredential(t *testing.T) {
 	}
 
 	location, cred, err := v.Find("acid")
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	if location != "acidburn" {
 		t.Fatal("Find returned the wrong location")
