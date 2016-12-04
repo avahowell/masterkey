@@ -110,7 +110,7 @@ var (
 		return repl.Command{
 			Name:   "importcsv",
 			Action: importcsv(v),
-			Usage:  "imporcsv [path to csv] [location key] [username key] [password key]: import a csv file",
+			Usage:  "importcsv [path to csv] [location key] [username key] [password key]: import a csv file.\nThe location key, username key, and password key are the CSV key names used to locate each value. Extra keys will be added to the vault as meta tags.",
 		}
 	}
 )
