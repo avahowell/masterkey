@@ -104,11 +104,5 @@ func main() {
 		r.Stop()
 	}()
 
-	r.OnStop(func() {
-		fmt.Println("clearing clipboard and saving vault")
-		secureclip.Clear()
-		v.Save(vaultPath)
-	})
-
 	r.Loop()
 }
