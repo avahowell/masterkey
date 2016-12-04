@@ -379,8 +379,8 @@ func (v *Vault) Locations() ([]string, error) {
 }
 
 // Find searches the vault for locations containing the `searchtext` and
-// returns the credential if it is found. Otherwise, an error
-// `ErrNoSuchCredential` will be returned.
+// returns the matching credential name and credential if it is found.
+// Otherwise, an error `ErrNoSuchCredential` will be returned.
 func (v *Vault) Find(searchtext string) (string, *Credential, error) {
 	creds, err := v.decrypt()
 	if err != nil {
@@ -406,7 +406,7 @@ func (v *Vault) Find(searchtext string) (string, *Credential, error) {
 }
 
 // FindMeta search the credential at location `location` for a meta value
-// containing `serachtext` and returns the meta value if it is found.
+// containing `serachtext` and returns the meta name and value if it is found.
 // Otherwise, an error `ErrMetaDoesNotExist` will be returned.
 func (v *Vault) FindMeta(location string, searchtext string) (string, string, error) {
 	creds, err := v.decrypt()
