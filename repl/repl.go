@@ -2,7 +2,6 @@ package repl
 
 import (
 	"bufio"
-	"bytes"
 	"fmt"
 	"io"
 	"os"
@@ -57,11 +56,12 @@ func (r *REPL) OnStop(sf func()) {
 
 // Usage returns the usage for every command in the REPL.
 func (r *REPL) Usage() string {
-	buf := new(bytes.Buffer)
+	printstring := ""
 	for _, command := range r.commands {
-		fmt.Fprintln(buf, command.Usage)
+		printstring += "\n"
+		printstring += command.Usage + "\n"
 	}
-	return buf.String()
+	return printstring
 }
 
 // Stop terminates the REPL.

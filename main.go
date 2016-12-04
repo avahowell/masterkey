@@ -21,6 +21,7 @@ func die(err error) {
 
 func setupRepl(v *vault.Vault, vaultPath string) *repl.REPL {
 	r := repl.New(fmt.Sprintf("masterkey [%v] > ", vaultPath))
+
 	r.AddCommand(importCmd(v))
 	r.AddCommand(listCmd(v))
 	r.AddCommand(saveCmd(v, vaultPath))
@@ -33,6 +34,8 @@ func setupRepl(v *vault.Vault, vaultPath string) *repl.REPL {
 	r.AddCommand(addmetaCmd(v))
 	r.AddCommand(editmetaCmd(v))
 	r.AddCommand(deletemetaCmd(v))
+	r.AddCommand(deleteCmd(v))
+
 	r.OnStop(func() {
 		fmt.Println("clearing clipboard and saving vault")
 		secureclip.Clear()
@@ -101,17 +104,6 @@ func main() {
 		r.Stop()
 	}()
 
-	r.AddCommand(listCmd(v))
-	r.AddCommand(saveCmd(v, vaultPath))
-	r.AddCommand(getCmd(v))
-	r.AddCommand(addCmd(v))
-	r.AddCommand(genCmd(v))
-	r.AddCommand(editCmd(v))
-	r.AddCommand(clipCmd(v))
-	r.AddCommand(searchCmd(v))
-	r.AddCommand(deleteCmd(v))
-	r.AddCommand(addmetaCmd(v))
-	r.AddCommand(editmetaCmd(v))
 	r.OnStop(func() {
 		fmt.Println("clearing clipboard and saving vault")
 		secureclip.Clear()
