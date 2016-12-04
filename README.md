@@ -53,9 +53,34 @@ Note that as with all password managers, your vault is only as secure as your ma
 
 `masterkey` will launch you into an interactive shell where you can interact with your vault. `help` lists the available commands. The vault will automatically be (safely, that is, atomically), saved on ctrl-c or `exit`.
 
+
+## Migration
+
+`masterkey` has a command, `importcsv`, that can be used to import arbitrary password data from a CSV file. This command takes 4 arguments. The first is the path to the CSV file, the second is the name of the CSV key to use for Locations, the third is the name of the CSV key to use for Usernames, and the fourth is the name of CSV key to use for Passwords. All other CSV fields will be added as Meta tags.
+
+For example, the following CSV password file:
+```csv
+"Group","Title","Username","Password","URL","Notes"
+
+"TestGroup0","testtitle0","testusername0","testpassword0","testurl0",""
+"TestGroup1","testtitle1","testusername1","testpassword1","testurl1",""
+"TestGroup2","testtitle2","testusername2","testpassword2","testurl2",""
+"TestGroup2","testtitle2","testusername2","testpassword2","testurl2",""
+"TestGroup3","testtitle3","testusername3","testpassword3","testurl3",""
+"TestGroup4","testtitle4","testusername4","testpassword4","testurl4",""
+"TestGroup3","testtitle3","testusername3","testpassword3","testurl3",""
+```
+
+Can be successfully imported by using the following command:
+
+```
+masterkey [vault.db] > importcsv test.csv Title Username Password
+```
+
+This will use the "Title" field to determine the Location, "Username" for usernames, and "Password" for passwords.
+
 ## Planned Features
 
-- Migration from 1Password, KeePass, and `password-store`
 - Web interface
 
 
