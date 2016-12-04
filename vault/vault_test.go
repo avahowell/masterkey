@@ -146,6 +146,9 @@ func TestFindCredential(t *testing.T) {
 	}
 
 	location, cred, err := v.Find("acid")
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	if location != "acidburn" {
 		t.Fatal("Find returned the wrong location")

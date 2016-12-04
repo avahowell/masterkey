@@ -436,7 +436,9 @@ func (v *Vault) FindMeta(location string, searchtext string) (string, string, er
 	return "", "", ErrMetaDoesNotExist
 }
 
-// LoadCSV loads password data from a CSV file.
+// LoadCSV loads password data from a CSV file. The text provided by
+// locationField is used as the key for Location data, usernameField and
+// passwordField are used as the key for the Username and Password data.
 func (v *Vault) LoadCSV(c io.Reader, locationField, usernameField, passwordField string) (int, error) {
 	r := csv.NewReader(c)
 
