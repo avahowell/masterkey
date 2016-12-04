@@ -8,6 +8,97 @@ import (
 	"testing"
 )
 
+func TestFindMeta(t *testing.T) {
+	v, err := New("testpass")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, _, err = v.FindMeta("testlocation", "test")
+	if err != ErrNoSuchCredential {
+		t.Fatal("expected no such credential")
+	}
+
+	err = v.Add("testlocation", Credential{Username: "testusername", Password: "testpassword"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, _, err = v.FindMeta("testlocation", "test")
+	if err != ErrMetaDoesNotExist {
+		t.Fatal("expected ErrMetaDoesNotExist")
+	}
+
+	err = v.AddMeta("testlocation", "testmeta", "testmetaval")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	metaname, metaval, err := v.FindMeta("testlocation", "testme")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if metaname != "testmeta" {
+		t.Fatalf("meta name returned did not match: got %v wanted testmeta\n", metaname)
+	}
+	if metaval != "testmetaval" {
+		t.Fatalf("meta value returned did not match: got %v wanted testmetaval\n", metaval)
+	}
+}
+
+func TestFindCredential(t *testing.T) {
+	v, err := New("testpass")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, _, err = v.Find("acid")
+	if err != ErrNoSuchCredential {
+		t.Fatal("expected no such credential")
+	}
+
+	err = v.Add("testloc", Credential{Username: "testusername", Password: "testpassword"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = v.Add("deadbeef", Credential{Username: "testusername1", Password: "testpassword1"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = v.Add("acidburn", Credential{Username: "testusername2", Password: "testpassword2"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	location, cred, err := v.Find("acid")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if location != "acidburn" {
+		t.Fatal("Find returned the wrong location")
+	}
+
+	if cred.Username != "testusername2" || cred.Password != "testpassword2" {
+		t.Fatal("Find returned the wrong credential")
+	}
+
+	location, cred, err = v.Find("beef")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if location != "deadbeef" {
+		t.Fatal("Find returned the wrong location")
+	}
+
+	if cred.Username != "testusername1" || cred.Password != "testpassword1" {
+		t.Fatal("Find returned the wrong credential")
+	}
+}
+
 func TestDeleteLocation(t *testing.T) {
 	v, err := New("testpass")
 	if err != nil {

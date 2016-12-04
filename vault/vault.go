@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"strings"
 
 	"github.com/NebulousLabs/entropy-mnemonics"
 	"golang.org/x/crypto/nacl/secretbox"
@@ -375,4 +376,60 @@ func (v *Vault) Locations() ([]string, error) {
 		locations = append(locations, location)
 	}
 	return locations, nil
+}
+
+// Find searches the vault for locations containing the `searchtext` and
+// returns the credential if it is found. Otherwise, an error
+// `ErrNoSuchCredential` will be returned.
+func (v *Vault) Find(searchtext string) (string, *Credential, error) {
+	creds, err := v.decrypt()
+	if err != nil {
+		return "", nil, err
+	}
+
+	// first try direct string comparison, we want the most exact match if
+	// possible
+	for location, cred := range creds {
+		if location == searchtext {
+			return location, cred, nil
+		}
+	}
+
+	// that failed, so let's match using strings.Contains
+	for location, cred := range creds {
+		if strings.Contains(location, searchtext) {
+			return location, cred, nil
+		}
+	}
+
+	return "", nil, ErrNoSuchCredential
+}
+
+// FindMeta search the credential at location `location` for a meta value
+// containing `serachtext` and returns the meta value if it is found.
+// Otherwise, an error `ErrMetaDoesNotExist` will be returned.
+func (v *Vault) FindMeta(location string, searchtext string) (string, string, error) {
+	creds, err := v.decrypt()
+	if err != nil {
+		return "", "", err
+	}
+
+	cred, exists := creds[location]
+	if !exists {
+		return "", "", ErrNoSuchCredential
+	}
+
+	for metaname, metaval := range cred.Meta {
+		if metaname == searchtext {
+			return metaname, metaval, nil
+		}
+	}
+
+	for metaname, metaval := range cred.Meta {
+		if strings.Contains(metaname, searchtext) {
+			return metaname, metaval, nil
+		}
+	}
+
+	return "", "", ErrMetaDoesNotExist
 }

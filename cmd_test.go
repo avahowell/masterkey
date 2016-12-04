@@ -431,3 +431,99 @@ func TestDeleteMetaCommand(t *testing.T) {
 		t.Fatal("credential still had meta after delete command")
 	}
 }
+
+func TestFuzzyClip(t *testing.T) {
+	v, err := vault.New("testpass")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = v.Add("deadbeef", vault.Credential{Username: "testuser0", Password: "testpassword0"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = v.Add("acidburn", vault.Credential{Username: "testuser1", Password: "testpassword1"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = v.Add("gibson", vault.Credential{Username: "testuser2", Password: "testpassword2"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = clip(v)([]string{"gibs"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	clipcontents, err := clipboard.ReadAll()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if clipcontents != "testpassword2" {
+		t.Fatal("clip did not copy using an incomplete search string")
+	}
+
+	_, err = clip(v)([]string{"acid"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	clipcontents, err = clipboard.ReadAll()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if clipcontents != "testpassword1" {
+		t.Fatal("clip did not copy using an incomplete search string")
+	}
+
+	_, err = clip(v)([]string{"beef"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	clipcontents, err = clipboard.ReadAll()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if clipcontents != "testpassword0" {
+		t.Fatal("clip did not copy using an incomplete search string")
+	}
+}
+
+func TestFuzzyGet(t *testing.T) {
+	v, err := vault.New("testpass")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = v.Add("deadbeef", vault.Credential{Username: "testuser0", Password: "testpassword0"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = v.Add("acidburn", vault.Credential{Username: "testuser1", Password: "testpassword1"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = v.Add("gibson", vault.Credential{Username: "testuser2", Password: "testpassword2"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = get(v)([]string{"gibs"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = get(v)([]string{"acid"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = get(v)([]string{"beef"})
+	if err != nil {
+		t.Fatal(err)
+	}
+}

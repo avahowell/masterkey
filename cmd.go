@@ -30,7 +30,7 @@ var (
 		return repl.Command{
 			Name:   "get",
 			Action: get(v),
-			Usage:  "get [location]: get the credential at [location]",
+			Usage:  "get [location]: get the credential at [location]. [location] can be a partial string: masterkey will search the vault and return the first result.",
 		}
 	}
 
@@ -62,7 +62,7 @@ var (
 		return repl.Command{
 			Name:   "clip",
 			Action: clip(v),
-			Usage:  "clip [location] [meta name]: copy the password at location to the clipboard. meta name optional",
+			Usage:  "clip [location] [meta name]: copy the password at location to the clipboard. meta name optional. Location and meta names can be partial strings, masterkey will search the vault and return the first result.",
 		}
 	}
 
@@ -203,8 +203,7 @@ func clip(v *vault.Vault) repl.ActionFunc {
 			return "", fmt.Errorf("clip requires at least 1 argument. See help for usage.")
 		}
 
-		location := args[0]
-		cred, err := v.Get(location)
+		location, cred, err := v.Find(args[0])
 		if err != nil {
 			return "", err
 		}
@@ -213,12 +212,12 @@ func clip(v *vault.Vault) repl.ActionFunc {
 		clipType := "password"
 		if len(args) > 1 {
 			meta := args[1]
-			metaval, exists := cred.Meta[meta]
-			if !exists {
-				return "", fmt.Errorf("%v metadata tag not found.", meta)
+			metaname, metaval, err := v.FindMeta(location, meta)
+			if err != nil {
+				return "", err
 			}
 			toClip = metaval
-			clipType = meta
+			clipType = metaname
 		}
 
 		err = secureclip.Clip(toClip)
@@ -276,8 +275,7 @@ func get(v *vault.Vault) repl.ActionFunc {
 		if len(args) == 0 {
 			return "", fmt.Errorf("get requires at least one argument. See help for usage.")
 		}
-		location := args[0]
-		cred, err := v.Get(location)
+		_, cred, err := v.Find(args[0])
 		if err != nil {
 			return "", err
 		}
