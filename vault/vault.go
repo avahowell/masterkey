@@ -251,6 +251,11 @@ func (v *Vault) Save(filename string) error {
 		return err
 	}
 
+	err = tempfile.Close()
+	if err != nil {
+		return err
+	}
+
 	err = os.Rename(tempfile.Name(), filename)
 	if err != nil {
 		return err
