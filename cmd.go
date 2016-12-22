@@ -244,7 +244,7 @@ func clip(v *vault.Vault) repl.ActionFunc {
 		}
 
 		toClip := cred.Password
-		clipType := "password"
+		clipLabel := cred.Username
 		if len(args) > 1 {
 			meta := args[1]
 			metaname, metaval, err := v.FindMeta(location, meta)
@@ -252,14 +252,15 @@ func clip(v *vault.Vault) repl.ActionFunc {
 				return "", err
 			}
 			toClip = metaval
-			clipType = metaname
+			clipLabel = metaname
 		}
 
 		err = secureclip.Clip(toClip)
 		if err != nil {
 			return "", err
 		}
-		return fmt.Sprintf("%v copied %v to clipboard, will clear in 30 seconds\n", location, clipType), nil
+
+		return fmt.Sprintf("%v@%v copied to clipboard, will clear in 30 seconds\n", clipLabel, location), nil
 	}
 }
 
