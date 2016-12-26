@@ -1,11 +1,11 @@
 package repl
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"os"
 
+	"github.com/chzyer/readline"
 	"github.com/mattn/go-shellwords"
 )
 
@@ -13,13 +13,13 @@ type (
 	// REPL is a read-eval-print loop used to create a simple, minimalistic,
 	// easy-to-use command line interface for masterkey.
 	REPL struct {
-		prompt   string
-		commands map[string]Command
-		input    io.Reader
-		output   io.Writer
-		stopfunc func()
-
-		stopchan chan struct{}
+		prompt          string
+		commands        map[string]Command
+		prefixCompleter *readline.PrefixCompleter
+		input           io.Reader
+		output          io.Writer
+		rl              *readline.Instance
+		stopfunc        func()
 	}
 
 	// Command is a command that can be registered with the REPL. It consists
@@ -41,11 +41,11 @@ type (
 // New instantiates a new REPL using the provided `prompt`.
 func New(prompt string) *REPL {
 	return &REPL{
-		commands: make(map[string]Command),
-		prompt:   prompt,
-		stopchan: make(chan struct{}),
-		input:    os.Stdin,
-		output:   os.Stdout,
+		commands:        make(map[string]Command),
+		prefixCompleter: readline.NewPrefixCompleter(readline.PcItem("exit"), readline.PcItem("help")),
+		prompt:          prompt,
+		input:           os.Stdin,
+		output:          os.Stdout,
 	}
 }
 
@@ -58,23 +58,21 @@ func (r *REPL) OnStop(sf func()) {
 func (r *REPL) Usage() string {
 	printstring := ""
 	for _, command := range r.commands {
-		printstring += "\n"
 		printstring += command.Usage + "\n"
 	}
 	return printstring
 }
 
-// Stop terminates the REPL.
-func (r *REPL) Stop() {
-	if r.stopfunc != nil {
-		r.stopfunc()
-	}
-	close(r.stopchan)
-}
-
 // AddCommand registers the command provided in `cmd` with the REPL.
 func (r *REPL) AddCommand(cmd Command) {
 	r.commands[cmd.Name] = cmd
+
+	var completers []readline.PrefixCompleterInterface
+	for name := range r.commands {
+		completers = append(completers, readline.PcItem(name))
+	}
+
+	r.prefixCompleter = readline.NewPrefixCompleter(completers...)
 }
 
 // eval evaluates a line that was input to the REPL.
@@ -90,8 +88,15 @@ func (r *REPL) eval(line string) (string, error) {
 	}
 
 	if command == "exit" {
-		r.Stop()
-		return "", nil
+		return "", r.rl.Close()
+	}
+
+	if command == "clear" {
+		_, err := readline.ClearScreen(r.output)
+		if err != nil {
+			return "", err
+		}
+		return "terminal cleared", nil
 	}
 
 	cmd, exists := r.commands[command]
@@ -109,29 +114,33 @@ func (r *REPL) eval(line string) (string, error) {
 
 // Loop starts the Read-Eval-Print loop.
 func (r *REPL) Loop() error {
-	msgchan := make(chan string)
+	rl, err := readline.NewEx(&readline.Config{
+		Prompt:       r.prompt,
+		AutoComplete: r.prefixCompleter,
+	})
 
-	go func() {
-		scanner := bufio.NewScanner(r.input)
-		for scanner.Scan() {
-			msgchan <- scanner.Text()
-		}
-	}()
+	if err != nil {
+		return err
+	}
+	defer rl.Close()
+	r.rl = rl
 
 	for {
-		fmt.Fprint(r.output, r.prompt)
-		select {
-		case <-r.stopchan:
-			return nil
-		case line := <-msgchan:
-			if line != "" {
-				res, err := r.eval(line)
-				if err != nil {
-					fmt.Fprintln(r.output, err.Error())
-					continue
-				}
-				fmt.Fprint(r.output, res)
+		line, err := r.rl.Readline()
+		if err != nil {
+			if err == readline.ErrInterrupt && r.stopfunc != nil {
+				r.stopfunc()
 			}
+			break
+		}
+		if line != "" {
+			res, err := r.eval(line)
+			if err != nil {
+				fmt.Fprintln(r.output, err.Error())
+				continue
+			}
+			fmt.Fprint(r.output, res)
 		}
 	}
+	return nil
 }

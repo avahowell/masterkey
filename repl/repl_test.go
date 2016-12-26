@@ -1,11 +1,9 @@
 package repl
 
 import (
-	"bytes"
 	"errors"
 	"reflect"
 	"testing"
-	"time"
 )
 
 func TestREPLArgQuotes(t *testing.T) {
@@ -38,40 +36,6 @@ func TestREPLArgQuotes(t *testing.T) {
 	expectedArgs = []string{"test1", "test2", "test with spaces"}
 	if !reflect.DeepEqual(callArgs, expectedArgs) {
 		t.Fatalf("args incorrectly passed to repl command, got %v wanted %v\n", callArgs, expectedArgs)
-	}
-}
-
-func TestREPLLoop(t *testing.T) {
-	r := New("test >")
-
-	stdin := new(bytes.Buffer)
-	stdout := new(bytes.Buffer)
-	r.input = stdin
-	r.output = stdout
-
-	stopped := make(chan struct{})
-	go func() {
-		defer close(stopped)
-		r.Loop()
-	}()
-
-	time.Sleep(100 * time.Millisecond)
-	if stdout.String() != "test >" {
-		t.Fatal("repl loop did not print the expected prompt")
-	}
-
-	stopfuncCalled := false
-	stopfunc := func() {
-		stopfuncCalled = true
-	}
-	r.OnStop(stopfunc)
-
-	stdout.Reset()
-	r.Stop()
-
-	<-stopped
-	if !stopfuncCalled {
-		t.Fatal("stopfunc was not called")
 	}
 }
 
