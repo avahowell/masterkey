@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/howeyc/gopass"
 	"github.com/johnathanhowell/masterkey/repl"
 	"github.com/johnathanhowell/masterkey/secureclip"
 	"github.com/johnathanhowell/masterkey/vault"
@@ -113,7 +114,41 @@ var (
 			Usage:  "importcsv [path to csv] [location key] [username key] [password key]: import a csv file.\nThe location key, username key, and password key are the CSV key names used to locate each value. Extra keys will be added to the vault as meta tags.",
 		}
 	}
+
+	changePasswordCmd = func(v *vault.Vault) repl.Command {
+		return repl.Command{
+			Name:   "changepassword",
+			Action: changepassword(v),
+			Usage:  "changepassword: change the master password for the vault",
+		}
+	}
 )
+
+func changepassword(v *vault.Vault) repl.ActionFunc {
+	return func(args []string) (string, error) {
+		fmt.Print("Enter a new password for this vault: ")
+		pass1, err := gopass.GetPasswd()
+		if err != nil {
+			return "", err
+		}
+		fmt.Print("Again, please: ")
+		pass2, err := gopass.GetPasswd()
+		if err != nil {
+			return "", err
+		}
+
+		if string(pass1) != string(pass2) {
+			return "", fmt.Errorf("passwords did not match")
+		}
+
+		err = v.ChangePassphrase(string(pass1))
+		if err != nil {
+			return "", err
+		}
+
+		return "master password changed successfully\n", nil
+	}
+}
 
 func importcsv(v *vault.Vault) repl.ActionFunc {
 	return func(args []string) (string, error) {
