@@ -58,7 +58,6 @@ func (r *REPL) OnStop(sf func()) {
 func (r *REPL) Usage() string {
 	printstring := ""
 	for _, command := range r.commands {
-		printstring += "\n"
 		printstring += command.Usage + "\n"
 	}
 	return printstring
@@ -89,9 +88,15 @@ func (r *REPL) eval(line string) (string, error) {
 	}
 
 	if command == "exit" {
-		if r.rl != nil {
-			return "", r.rl.Close()
+		return "", r.rl.Close()
+	}
+
+	if command == "clear" {
+		_, err := readline.ClearScreen(r.output)
+		if err != nil {
+			return "", err
 		}
+		return "terminal cleared", nil
 	}
 
 	cmd, exists := r.commands[command]
