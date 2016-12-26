@@ -60,7 +60,10 @@ func New(prompt string) *REPL {
 		Name:  "exit",
 		Usage: "exit: exit the interactive prompt",
 		Action: func(args []string) (string, error) {
-			return "exiting", r.rl.Close()
+			if r.stopfunc != nil {
+				r.stopfunc()
+			}
+			return "", r.rl.Close()
 		},
 	})
 
