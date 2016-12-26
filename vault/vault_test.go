@@ -9,6 +9,48 @@ import (
 	"testing"
 )
 
+func TestChangePassphrase(t *testing.T) {
+	v, err := New("testpass")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = v.Add("testlocation", Credential{Username: "testusername", Password: "testpassword"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = v.Save("testout.db")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove("testout.db")
+
+	v, err = Open("testout.db", "testpass")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = v.ChangePassphrase("newpass")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = v.Save("testout.db")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = Open("testout.db", "newpass")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = v.Get("testlocation")
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestFindMeta(t *testing.T) {
 	v, err := New("testpass")
 	if err != nil {
