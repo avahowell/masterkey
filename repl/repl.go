@@ -17,6 +17,7 @@ type (
 		commands map[string]Command
 		input    io.Reader
 		output   io.Writer
+		rl       *readline.Instance
 		stopfunc func()
 	}
 
@@ -78,6 +79,12 @@ func (r *REPL) eval(line string) (string, error) {
 		return r.Usage(), nil
 	}
 
+	if command == "exit" {
+		if r.rl != nil {
+			return "", r.rl.Close()
+		}
+	}
+
 	cmd, exists := r.commands[command]
 	if !exists {
 		return "", fmt.Errorf("command not recognized. Type `help` for a list of commands.")
@@ -98,9 +105,10 @@ func (r *REPL) Loop() error {
 		return err
 	}
 	defer rl.Close()
+	r.rl = rl
 
 	for {
-		line, err := rl.Readline()
+		line, err := r.rl.Readline()
 		if err != nil {
 			if err == readline.ErrInterrupt && r.stopfunc != nil {
 				r.stopfunc()
