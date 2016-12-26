@@ -506,3 +506,34 @@ func (v *Vault) LoadCSV(c io.Reader, locationField, usernameField, passwordField
 
 	return nimported, nil
 }
+
+// ChangePassphrase re-encrypts the entire vault with a new master key derived
+// from the provided `newpassphrase`.
+func (v *Vault) ChangePassphrase(newpassphrase string) error {
+	creds, err := v.decrypt()
+	if err != nil {
+		return err
+	}
+
+	var nonce [24]byte
+	if _, err := io.ReadFull(rand.Reader, nonce[:]); err != nil {
+		panic(err)
+	}
+
+	var secret [32]byte
+	key, err := scrypt.Key([]byte(newpassphrase), nonce[:], scryptN, scryptR, scryptP, keyLen)
+	if err != nil {
+		panic(err)
+	}
+	copy(secret[:], key)
+
+	v.nonce = nonce
+	v.secret = secret
+
+	err = v.encrypt(creds)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
