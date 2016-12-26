@@ -40,13 +40,43 @@ type (
 
 // New instantiates a new REPL using the provided `prompt`.
 func New(prompt string) *REPL {
-	return &REPL{
-		commands:        make(map[string]Command),
-		prefixCompleter: readline.NewPrefixCompleter(readline.PcItem("exit"), readline.PcItem("help")),
-		prompt:          prompt,
-		input:           os.Stdin,
-		output:          os.Stdout,
+	r := &REPL{
+		commands: make(map[string]Command),
+		prompt:   prompt,
+		input:    os.Stdin,
+		output:   os.Stdout,
 	}
+
+	// Add default commands clear, exit, and help
+	r.AddCommand(Command{
+		Name:  "help",
+		Usage: "help: displays available commands and their usage",
+		Action: func(args []string) (string, error) {
+			return r.Usage(), nil
+		},
+	})
+
+	r.AddCommand(Command{
+		Name:  "exit",
+		Usage: "exit: exit the interactive prompt",
+		Action: func(args []string) (string, error) {
+			return "exiting", r.rl.Close()
+		},
+	})
+
+	r.AddCommand(Command{
+		Name:  "clear",
+		Usage: "clear: clear the terminal",
+		Action: func(args []string) (string, error) {
+			_, err := readline.ClearScreen(r.output)
+			if err != nil {
+				return "", err
+			}
+			return "cleared terminal", nil
+		},
+	})
+
+	return r
 }
 
 // OnStop registers a function to be called when the REPL stops.
@@ -82,22 +112,6 @@ func (r *REPL) eval(line string) (string, error) {
 		return "", err
 	}
 	command := args[0]
-
-	if command == "help" {
-		return r.Usage(), nil
-	}
-
-	if command == "exit" {
-		return "", r.rl.Close()
-	}
-
-	if command == "clear" {
-		_, err := readline.ClearScreen(r.output)
-		if err != nil {
-			return "", err
-		}
-		return "terminal cleared", nil
-	}
 
 	cmd, exists := r.commands[command]
 	if !exists {
