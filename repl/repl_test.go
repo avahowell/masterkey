@@ -67,7 +67,6 @@ func TestREPLLoop(t *testing.T) {
 	r.OnStop(stopfunc)
 
 	stdout.Reset()
-	r.Stop()
 
 	<-stopped
 	if !stopfuncCalled {

@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"os/signal"
 
 	"github.com/howeyc/gopass"
 	"github.com/johnathanhowell/masterkey/repl"
@@ -96,13 +95,5 @@ func main() {
 	}
 
 	r := setupRepl(v, vaultPath)
-
-	sigchan := make(chan os.Signal, 1)
-	signal.Notify(sigchan, os.Interrupt, os.Kill)
-	go func() {
-		<-sigchan
-		r.Stop()
-	}()
-
 	r.Loop()
 }

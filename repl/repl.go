@@ -1,11 +1,11 @@
 package repl
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"os"
 
+	"github.com/chzyer/readline"
 	"github.com/mattn/go-shellwords"
 )
 
@@ -18,8 +18,6 @@ type (
 		input    io.Reader
 		output   io.Writer
 		stopfunc func()
-
-		stopchan chan struct{}
 	}
 
 	// Command is a command that can be registered with the REPL. It consists
@@ -43,7 +41,6 @@ func New(prompt string) *REPL {
 	return &REPL{
 		commands: make(map[string]Command),
 		prompt:   prompt,
-		stopchan: make(chan struct{}),
 		input:    os.Stdin,
 		output:   os.Stdout,
 	}
@@ -64,14 +61,6 @@ func (r *REPL) Usage() string {
 	return printstring
 }
 
-// Stop terminates the REPL.
-func (r *REPL) Stop() {
-	if r.stopfunc != nil {
-		r.stopfunc()
-	}
-	close(r.stopchan)
-}
-
 // AddCommand registers the command provided in `cmd` with the REPL.
 func (r *REPL) AddCommand(cmd Command) {
 	r.commands[cmd.Name] = cmd
@@ -89,11 +78,6 @@ func (r *REPL) eval(line string) (string, error) {
 		return r.Usage(), nil
 	}
 
-	if command == "exit" {
-		r.Stop()
-		return "", nil
-	}
-
 	cmd, exists := r.commands[command]
 	if !exists {
 		return "", fmt.Errorf("command not recognized. Type `help` for a list of commands.")
@@ -109,29 +93,28 @@ func (r *REPL) eval(line string) (string, error) {
 
 // Loop starts the Read-Eval-Print loop.
 func (r *REPL) Loop() error {
-	msgchan := make(chan string)
-
-	go func() {
-		scanner := bufio.NewScanner(r.input)
-		for scanner.Scan() {
-			msgchan <- scanner.Text()
-		}
-	}()
+	rl, err := readline.New(r.prompt)
+	if err != nil {
+		return err
+	}
+	defer rl.Close()
 
 	for {
-		fmt.Fprint(r.output, r.prompt)
-		select {
-		case <-r.stopchan:
-			return nil
-		case line := <-msgchan:
-			if line != "" {
-				res, err := r.eval(line)
-				if err != nil {
-					fmt.Fprintln(r.output, err.Error())
-					continue
-				}
-				fmt.Fprint(r.output, res)
+		line, err := rl.Readline()
+		if err != nil {
+			if err == readline.ErrInterrupt && r.stopfunc != nil {
+				r.stopfunc()
 			}
+			break
+		}
+		if line != "" {
+			res, err := r.eval(line)
+			if err != nil {
+				fmt.Fprintln(r.output, err.Error())
+				continue
+			}
+			fmt.Fprint(r.output, res)
 		}
 	}
+	return nil
 }
