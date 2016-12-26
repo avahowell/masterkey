@@ -13,12 +13,13 @@ type (
 	// REPL is a read-eval-print loop used to create a simple, minimalistic,
 	// easy-to-use command line interface for masterkey.
 	REPL struct {
-		prompt   string
-		commands map[string]Command
-		input    io.Reader
-		output   io.Writer
-		rl       *readline.Instance
-		stopfunc func()
+		prompt          string
+		commands        map[string]Command
+		prefixCompleter *readline.PrefixCompleter
+		input           io.Reader
+		output          io.Writer
+		rl              *readline.Instance
+		stopfunc        func()
 	}
 
 	// Command is a command that can be registered with the REPL. It consists
@@ -40,10 +41,11 @@ type (
 // New instantiates a new REPL using the provided `prompt`.
 func New(prompt string) *REPL {
 	return &REPL{
-		commands: make(map[string]Command),
-		prompt:   prompt,
-		input:    os.Stdin,
-		output:   os.Stdout,
+		commands:        make(map[string]Command),
+		prefixCompleter: readline.NewPrefixCompleter(readline.PcItem("exit"), readline.PcItem("help")),
+		prompt:          prompt,
+		input:           os.Stdin,
+		output:          os.Stdout,
 	}
 }
 
@@ -65,6 +67,13 @@ func (r *REPL) Usage() string {
 // AddCommand registers the command provided in `cmd` with the REPL.
 func (r *REPL) AddCommand(cmd Command) {
 	r.commands[cmd.Name] = cmd
+
+	var completers []readline.PrefixCompleterInterface
+	for name := range r.commands {
+		completers = append(completers, readline.PcItem(name))
+	}
+
+	r.prefixCompleter = readline.NewPrefixCompleter(completers...)
 }
 
 // eval evaluates a line that was input to the REPL.
@@ -100,7 +109,11 @@ func (r *REPL) eval(line string) (string, error) {
 
 // Loop starts the Read-Eval-Print loop.
 func (r *REPL) Loop() error {
-	rl, err := readline.New(r.prompt)
+	rl, err := readline.NewEx(&readline.Config{
+		Prompt:       r.prompt,
+		AutoComplete: r.prefixCompleter,
+	})
+
 	if err != nil {
 		return err
 	}
