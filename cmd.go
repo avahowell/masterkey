@@ -29,11 +29,11 @@ var (
 	}
 
 	getCmd = func(v *vault.Vault) repl.Command {
-		return repl.Command{
+		return locationTabComplete(v, repl.Command{
 			Name:   "get",
 			Action: get(v),
 			Usage:  "get [location]: get the credential at [location]. [location] can be a partial string: masterkey will search the vault and return the first result.",
-		}
+		})
 	}
 
 	addCmd = func(v *vault.Vault) repl.Command {
@@ -53,19 +53,19 @@ var (
 	}
 
 	editCmd = func(v *vault.Vault) repl.Command {
-		return repl.Command{
+		return locationTabComplete(v, repl.Command{
 			Name:   "edit",
 			Action: edit(v),
 			Usage:  "edit [location] [username] [password]: change the credentials at location to username, password",
-		}
+		})
 	}
 
 	clipCmd = func(v *vault.Vault) repl.Command {
-		return repl.Command{
+		return locationTabComplete(v, repl.Command{
 			Name:   "clip",
 			Action: clip(v),
 			Usage:  "clip [location] [meta name]: copy the password at location to the clipboard. meta name optional. Location and meta names can be partial strings, masterkey will search the vault and return the first result.",
-		}
+		})
 	}
 
 	searchCmd = func(v *vault.Vault) repl.Command {
@@ -77,34 +77,34 @@ var (
 	}
 
 	deleteCmd = func(v *vault.Vault) repl.Command {
-		return repl.Command{
+		return locationTabComplete(v, repl.Command{
 			Name:   "delete",
 			Action: deletelocation(v),
 			Usage:  "delete [location]: remove [location] from the vault.",
-		}
+		})
 	}
 	addmetaCmd = func(v *vault.Vault) repl.Command {
-		return repl.Command{
+		return locationTabComplete(v, repl.Command{
 			Name:   "addmeta",
 			Action: addmeta(v),
 			Usage:  "addmeta [location] [meta name] [meta value]: add a metadata tag to the credential at [location]",
-		}
+		})
 	}
 
 	editmetaCmd = func(v *vault.Vault) repl.Command {
-		return repl.Command{
+		return locationTabComplete(v, repl.Command{
 			Name:   "editmeta",
 			Action: editmeta(v),
 			Usage:  "editmeta [location] [meta name] [new meta value]: edit an existing metadata tag at [location].",
-		}
+		})
 	}
 
 	deletemetaCmd = func(v *vault.Vault) repl.Command {
-		return repl.Command{
+		return locationTabComplete(v, repl.Command{
 			Name:   "deletemeta",
 			Action: deletemeta(v),
 			Usage:  "deletemeta [location] [meta name]: delete an existing metadata tag at [location].",
-		}
+		})
 	}
 
 	importCmd = func(v *vault.Vault) repl.Command {
@@ -123,6 +123,12 @@ var (
 		}
 	}
 )
+
+func locationTabComplete(v *vault.Vault, cmd repl.Command) repl.Command {
+	completions, _ := v.Locations()
+	cmd.Completions = completions
+	return cmd
+}
 
 func changepassword(v *vault.Vault) repl.ActionFunc {
 	return func(args []string) (string, error) {
@@ -346,7 +352,7 @@ func get(v *vault.Vault) repl.ActionFunc {
 		if len(args) == 0 {
 			return "", fmt.Errorf("get requires at least one argument. See help for usage.")
 		}
-		_, cred, err := v.Find(args[0])
+		_, cred, err := v.Find(strings.Join(args[0:], " "))
 		if err != nil {
 			return "", err
 		}

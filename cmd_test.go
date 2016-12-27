@@ -58,6 +58,16 @@ func TestGetCmd(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected get cmd to fail with too many args")
 	}
+
+	err = v.Add("test location with spaces", vault.Credential{Username: "testuser", Password: "testpass"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = getcmd([]string{"test", "location", "with", "spaces"})
+	if err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestAddCmd(t *testing.T) {

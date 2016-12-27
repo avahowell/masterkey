@@ -26,9 +26,10 @@ type (
 	// of a name, an action that is run when the name is input to the REPL, and
 	// a usage string.
 	Command struct {
-		Name   string
-		Action ActionFunc
-		Usage  string
+		Name        string
+		Action      ActionFunc
+		Usage       string
+		Completions []string
 	}
 
 	// ActionFunc defines the signature of an action associated with a command.
@@ -101,8 +102,12 @@ func (r *REPL) AddCommand(cmd Command) {
 	r.commands[cmd.Name] = cmd
 
 	var completers []readline.PrefixCompleterInterface
-	for name := range r.commands {
-		completers = append(completers, readline.PcItem(name))
+	for name, cmd := range r.commands {
+		var subcompleters []readline.PrefixCompleterInterface
+		for _, completestring := range cmd.Completions {
+			subcompleters = append(subcompleters, readline.PcItem(completestring))
+		}
+		completers = append(completers, readline.PcItem(name, subcompleters...))
 	}
 
 	r.prefixCompleter = readline.NewPrefixCompleter(completers...)
