@@ -13,6 +13,8 @@ import (
 	"path"
 	"strings"
 
+	"github.com/johnathanhowell/masterkey/vault/filelock"
+
 	"github.com/NebulousLabs/entropy-mnemonics"
 	"golang.org/x/crypto/nacl/secretbox"
 	"golang.org/x/crypto/scrypt"
@@ -54,6 +56,7 @@ type (
 		data   []byte
 		nonce  [24]byte
 		secret [32]byte
+		lock   *filelock.FileLock
 	}
 
 	// Credential defines a Username and Password, and a map of Metadata to store
@@ -115,10 +118,16 @@ func Open(filename string, passphrase string) (*Vault, error) {
 	var secret [32]byte
 	copy(secret[:], key)
 
+	lock, err := filelock.Lock(filename)
+	if err != nil {
+		return nil, err
+	}
+
 	vault := &Vault{
 		data:   bs,
 		nonce:  nonce,
 		secret: secret,
+		lock:   lock,
 	}
 
 	creds, err := vault.decrypt()
@@ -143,6 +152,14 @@ func Open(filename string, passphrase string) (*Vault, error) {
 	}
 
 	return vault, nil
+}
+
+// Close releases the lock acquired by calling Open() on a vault.
+func (v *Vault) Close() error {
+	if v.lock != nil {
+		return v.lock.Unlock()
+	}
+	return nil
 }
 
 // Generate generates a new strong mnemonic passphrase and Add()s it to the

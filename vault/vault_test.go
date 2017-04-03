@@ -7,7 +7,51 @@ import (
 	"sort"
 	"strings"
 	"testing"
+
+	"github.com/johnathanhowell/masterkey/vault/filelock"
 )
+
+func TestVaultLock(t *testing.T) {
+	v, err := New("testpass")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = v.Add("testlocation", Credential{Username: "testusername", Password: "testpassword"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = v.Save("testout.db")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	v, err = Open("testout.db", "testpass")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = Open("testout.db", "testpass")
+	if err != filelock.ErrLocked {
+		t.Fatal("open on already opened vault should fail with ErrLocked")
+	}
+
+	err = v.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	v2, err := Open("testout.db", "testpass")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = v2.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+}
 
 func TestChangePassphrase(t *testing.T) {
 	v, err := New("testpass")
@@ -41,10 +85,17 @@ func TestChangePassphrase(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = Open("testout.db", "newpass")
+	err = v.Close()
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	v2, err := Open("testout.db", "newpass")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer v2.Close()
+
 	_, err = v.Get("testlocation")
 	if err != nil {
 		t.Fatal(err)
@@ -612,6 +663,8 @@ func TestNewSaveOpen(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer vopen.Close()
+
 	credential, err := vopen.Get("testlocation")
 	if err != nil {
 		t.Fatal(err)
@@ -620,7 +673,12 @@ func TestNewSaveOpen(t *testing.T) {
 		t.Fatalf("vault did not store credential correctly. wanted %v got %v", testCredential, credential)
 	}
 
-	_, err = Open("pass.db", "wrongpass")
+	err = vopen.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	vopen, err = Open("pass.db", "wrongpass")
 	if err != ErrCouldNotDecrypt {
 		t.Fatal("Open decrypted given an incorrect passphrase")
 	}
@@ -648,6 +706,8 @@ func TestNonceRotation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer vopen.Close()
+
 	if vopen.secret == oldsecret {
 		t.Fatal("opened vault had the same secret as the previous vault")
 	}
