@@ -118,22 +118,23 @@ func Open(filename string, passphrase string) (*Vault, error) {
 	var secret [32]byte
 	copy(secret[:], key)
 
-	lock, err := filelock.Lock(filename)
-	if err != nil {
-		return nil, err
-	}
-
 	vault := &Vault{
 		data:   bs,
 		nonce:  nonce,
 		secret: secret,
-		lock:   lock,
 	}
 
 	creds, err := vault.decrypt()
 	if err != nil {
 		return nil, err
 	}
+
+	lock, err := filelock.Lock(filename)
+	if err != nil {
+		return nil, err
+	}
+
+	vault.lock = lock
 
 	if _, err = io.ReadFull(rand.Reader, nonce[:]); err != nil {
 		panic(err)

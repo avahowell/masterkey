@@ -9,6 +9,7 @@ import (
 	"github.com/johnathanhowell/masterkey/repl"
 	"github.com/johnathanhowell/masterkey/secureclip"
 	"github.com/johnathanhowell/masterkey/vault"
+	"github.com/johnathanhowell/masterkey/vault/filelock"
 )
 
 const usage = `Usage: masterkey [-new] vault`
@@ -69,6 +70,9 @@ func main() {
 
 		v, err = vault.Open(vaultPath, string(passphrase))
 		if err != nil {
+			if err == filelock.ErrLocked {
+				die(fmt.Errorf("%v is open by another masterkey instance! exit that instance first, or remove %v before opening this vault.", vaultPath, vaultPath+".lck"))
+			}
 			die(err)
 		}
 		defer v.Close()
