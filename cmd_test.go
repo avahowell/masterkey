@@ -147,6 +147,8 @@ func TestSaveCommand(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer vopen.Close()
+
 	cred, err := vopen.Get("testlocation")
 	if err != nil {
 		t.Fatal(err)

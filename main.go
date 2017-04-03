@@ -71,6 +71,7 @@ func main() {
 		if err != nil {
 			die(err)
 		}
+		defer v.Close()
 	} else {
 		fmt.Print("Enter a passphrase for " + vaultPath + ": ")
 		passphrase1, err := gopass.GetPasswd()
