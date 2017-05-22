@@ -533,6 +533,8 @@ func TestHeavyVault(t *testing.T) {
 	}
 	defer os.Remove("testvault.db")
 
+	v.Close()
+
 	vopen, err := Open("testvault.db", "testpass")
 	if err != nil {
 		t.Fatal(err)
@@ -588,6 +590,17 @@ func TestAddFile(t *testing.T) {
 	}
 	if bytes.Compare(originalBytes, newBytes) != 0 {
 		t.Fatal("expected extracted file to have the same contents as the original file")
+	}
+
+	// test adding a credential that doesnt have file data. GetFile should return
+	// an error.
+	err = v.Add("testlocation", Credential{Username: "test", Password: "test"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = v.GetFile("testlocation", "nofile")
+	if err != ErrNoSuchFile {
+		t.Fatal("expected GetFile on credential that doesnt have file data to fail with ErrNoSuchFile")
 	}
 }
 

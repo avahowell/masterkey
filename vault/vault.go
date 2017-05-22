@@ -46,6 +46,10 @@ var (
 	// ErrMetaDoesNotExist is returned from Editmeta if a meta tag does not
 	// exist.
 	ErrMetaDoesNotExist = errors.New("meta tag does not exist")
+
+	// ErrNoSuchFile is returned form a GetFile call if the requested credential
+	// has no file data.
+	ErrNoSuchFile = errors.New("file does not exist")
 )
 
 type (
@@ -558,6 +562,8 @@ func (v *Vault) ChangePassphrase(newpassphrase string) error {
 	return nil
 }
 
+// AddFile adds the file at `filename` as a credential at the location
+// `location`.
 func (v *Vault) AddFile(location string, filename string) error {
 	fileBytes, err := ioutil.ReadFile(filename)
 	if err != nil {
@@ -576,10 +582,15 @@ func (v *Vault) AddFile(location string, filename string) error {
 	return nil
 }
 
+// GetFile extracts the file at `outputFilename` to `location`.
 func (v *Vault) GetFile(location string, outputFilename string) error {
 	cred, err := v.Get(location)
 	if err != nil {
 		return err
+	}
+
+	if len(cred.ArbitraryData) == 0 {
+		return ErrNoSuchFile
 	}
 
 	return ioutil.WriteFile(outputFilename, cred.ArbitraryData, 0644)
