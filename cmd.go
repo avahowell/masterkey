@@ -122,7 +122,59 @@ var (
 			Usage:  "changepassword: change the master password for the vault",
 		}
 	}
+
+	addFileCmd = func(v *vault.Vault) repl.Command {
+		return repl.Command{
+			Name:   "addfile",
+			Action: addfile(v),
+			Usage:  "addfile [location] [path to file]: add a file to the vault",
+		}
+	}
+
+	getFileCmd = func(v *vault.Vault) repl.Command {
+		return repl.Command{
+			Name:   "getfile",
+			Action: getfile(v),
+			Usage:  "getfile [location] [output path]: fetch a file from the vault",
+		}
+	}
 )
+
+func getfile(v *vault.Vault) repl.ActionFunc {
+	return func(args []string) (string, error) {
+		if len(args) != 2 {
+			return "", fmt.Errorf("getfile requires 2 arguments. See `help` for details.")
+		}
+
+		location := args[0]
+		filepath := args[1]
+
+		err := v.GetFile(location, filepath)
+		if err != nil {
+			return "", err
+		}
+
+		return fmt.Sprintf("%v successfully saved to %v\n", location, filepath), nil
+	}
+}
+
+func addfile(v *vault.Vault) repl.ActionFunc {
+	return func(args []string) (string, error) {
+		if len(args) != 2 {
+			return "", fmt.Errorf("addfile requires 2 arguments. See `help` for details.")
+		}
+
+		location := args[0]
+		filepath := args[1]
+
+		err := v.AddFile(location, filepath)
+		if err != nil {
+			return "", err
+		}
+
+		return fmt.Sprintf("%v added successfully as %v\n", filepath, location), nil
+	}
+}
 
 func changepassword(v *vault.Vault) repl.ActionFunc {
 	return func(args []string) (string, error) {
