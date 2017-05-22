@@ -564,6 +564,7 @@ func TestAddFile(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer f.Close()
+	defer os.Remove("testfile")
 
 	_, err = io.CopyN(f, rand.Reader, 2048)
 	if err != nil {
@@ -579,6 +580,7 @@ func TestAddFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer os.Remove("testfile-res")
 
 	originalBytes, err := ioutil.ReadFile("testfile")
 	if err != nil {
@@ -601,6 +603,25 @@ func TestAddFile(t *testing.T) {
 	err = v.GetFile("testlocation", "nofile")
 	if err != ErrNoSuchFile {
 		t.Fatal("expected GetFile on credential that doesnt have file data to fail with ErrNoSuchFile")
+	}
+
+	// should be able to add a file to an existing credential that doesnt have
+	// file data
+	err = v.AddFile("testlocation", "testfile")
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = v.GetFile("testlocation", "testfile-res")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	newBytes, err = ioutil.ReadFile("testfile-res")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Compare(originalBytes, newBytes) != 0 {
+		t.Fatal("expected extracted file to have the same contents as the original file")
 	}
 }
 

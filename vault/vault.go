@@ -570,16 +570,21 @@ func (v *Vault) AddFile(location string, filename string) error {
 		return err
 	}
 
-	cred := Credential{
-		ArbitraryData: fileBytes,
-	}
-
-	err = v.Add(location, cred)
+	shouldEdit := false
+	var cred Credential
+	existingCred, err := v.Get(location)
 	if err != nil {
-		return err
+		cred = Credential{ArbitraryData: fileBytes}
+	} else {
+		shouldEdit = true
+		existingCred.ArbitraryData = fileBytes
+		cred = *existingCred
 	}
 
-	return nil
+	if shouldEdit {
+		return v.Edit(location, cred)
+	}
+	return v.Add(location, cred)
 }
 
 // GetFile extracts the file at `outputFilename` to `location`.
