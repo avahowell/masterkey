@@ -66,6 +66,8 @@ type (
 		Password string
 
 		Meta map[string]string
+
+		ArbitraryData []byte
 	}
 )
 
@@ -554,4 +556,31 @@ func (v *Vault) ChangePassphrase(newpassphrase string) error {
 	}
 
 	return nil
+}
+
+func (v *Vault) AddFile(location string, filename string) error {
+	fileBytes, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return err
+	}
+
+	cred := Credential{
+		ArbitraryData: fileBytes,
+	}
+
+	err = v.Add(location, cred)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (v *Vault) GetFile(location string, outputFilename string) error {
+	cred, err := v.Get(location)
+	if err != nil {
+		return err
+	}
+
+	return ioutil.WriteFile(outputFilename, cred.ArbitraryData, 0644)
 }

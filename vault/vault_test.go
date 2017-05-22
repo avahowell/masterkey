@@ -1,7 +1,11 @@
 package vault
 
 import (
+	"bytes"
+	"crypto/rand"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"os"
 	"reflect"
 	"sort"
@@ -542,6 +546,48 @@ func TestHeavyVault(t *testing.T) {
 		if cred.Username != "testuser" || cred.Password != "testpassword" {
 			t.Fatal("huge vault did not contain testuser or testvault")
 		}
+	}
+}
+
+func TestAddFile(t *testing.T) {
+	v, err := New("testpass")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer v.Close()
+
+	// generate a file with random bytes
+	f, err := os.Create("testfile")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+
+	_, err = io.CopyN(f, rand.Reader, 2048)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = v.AddFile("testfile", f.Name())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = v.GetFile("testfile", "testfile-res")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	originalBytes, err := ioutil.ReadFile("testfile")
+	if err != nil {
+		t.Fatal(err)
+	}
+	newBytes, err := ioutil.ReadFile("testfile-res")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Compare(originalBytes, newBytes) != 0 {
+		t.Fatal("expected extracted file to have the same contents as the original file")
 	}
 }
 
