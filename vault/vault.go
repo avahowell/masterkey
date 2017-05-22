@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/johnathanhowell/masterkey/vault/filelock"
@@ -565,7 +566,11 @@ func (v *Vault) ChangePassphrase(newpassphrase string) error {
 // AddFile adds the file at `filename` as a credential at the location
 // `location`.
 func (v *Vault) AddFile(location string, filename string) error {
-	fileBytes, err := ioutil.ReadFile(filename)
+	absPath, err := filepath.Abs(filename)
+	if err != nil {
+		return err
+	}
+	fileBytes, err := ioutil.ReadFile(absPath)
 	if err != nil {
 		return err
 	}
@@ -598,5 +603,10 @@ func (v *Vault) GetFile(location string, outputFilename string) error {
 		return ErrNoSuchFile
 	}
 
-	return ioutil.WriteFile(outputFilename, cred.ArbitraryData, 0644)
+	absPath, err := filepath.Abs(outputFilename)
+	if err != nil {
+		return err
+	}
+
+	return ioutil.WriteFile(absPath, cred.ArbitraryData, 0644)
 }
