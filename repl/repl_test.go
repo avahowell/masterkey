@@ -4,10 +4,11 @@ import (
 	"errors"
 	"reflect"
 	"testing"
+	"time"
 )
 
 func TestREPLArgQuotes(t *testing.T) {
-	r := New("test >")
+	r := New("test >", defaultTimeout)
 
 	var callArgs []string
 	r.AddCommand(Command{
@@ -39,8 +40,54 @@ func TestREPLArgQuotes(t *testing.T) {
 	}
 }
 
+// TestREPLTimeout verifies that the REPL exits after its configured timeout
+// elapses.
+func TestREPLTimeout(t *testing.T) {
+	r := New("test >", time.Second*5)
+	time.Sleep(time.Second * 6)
+	select {
+	case <-r.stopChan:
+	default:
+		t.Fatal("repl was still running after timeout elapsed")
+	}
+
+	r = New("test >", time.Second*5)
+	r.AddCommand(Command{
+		Name: "testcmd",
+		Action: func(args []string) (string, error) {
+			return "success", nil
+		},
+		Usage: "",
+	})
+
+	time.Sleep(time.Second * 4)
+	_, err := r.eval("testcmd")
+	if err != nil {
+		t.Fatal(err)
+	}
+	time.Sleep(time.Second * 4)
+	select {
+	case <-r.stopChan:
+		t.Fatal("repl stopped prematurely")
+	default:
+	}
+
+	r = New("test >", time.Second*5)
+	time.Sleep(time.Second * 4)
+	_, err = r.eval("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	time.Sleep(time.Second * 4)
+	select {
+	case <-r.stopChan:
+		t.Fatal("repl stopped prematurely")
+	default:
+	}
+}
+
 func TestREPLCmd(t *testing.T) {
-	r := New("test >")
+	r := New("test >", defaultTimeout)
 
 	called := false
 	var callArgs []string
@@ -70,7 +117,7 @@ func TestREPLCmd(t *testing.T) {
 }
 
 func TestREPLCmdError(t *testing.T) {
-	r := New("test >")
+	r := New("test >", defaultTimeout)
 	testerr := errors.New("testerr")
 
 	r.AddCommand(Command{

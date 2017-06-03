@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/howeyc/gopass"
 	"github.com/johnathanhowell/masterkey/repl"
@@ -19,8 +20,8 @@ func die(err error) {
 	os.Exit(1)
 }
 
-func setupRepl(v *vault.Vault, vaultPath string) *repl.REPL {
-	r := repl.New(fmt.Sprintf("masterkey [%v] > ", vaultPath))
+func setupRepl(v *vault.Vault, vaultPath string, timeout time.Duration) *repl.REPL {
+	r := repl.New(fmt.Sprintf("masterkey [%v] > ", vaultPath), timeout)
 
 	r.AddCommand(importCmd(v))
 	r.AddCommand(listCmd(v))
@@ -48,6 +49,7 @@ func setupRepl(v *vault.Vault, vaultPath string) *repl.REPL {
 
 func main() {
 	createVault := flag.Bool("new", false, "whether to create a new vault at the specified location")
+	timeout := flag.Duration("timeout", time.Minute*5, "how long to wait with no vault activity before exiting")
 
 	flag.Parse()
 
@@ -100,6 +102,6 @@ func main() {
 		}
 	}
 
-	r := setupRepl(v, vaultPath)
+	r := setupRepl(v, vaultPath, *timeout)
 	r.Loop()
 }

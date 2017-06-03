@@ -4,14 +4,19 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sync/atomic"
+	"time"
 
 	"github.com/chzyer/readline"
 	"github.com/mattn/go-shellwords"
 )
 
+const defaultTimeout = time.Hour
+
 type (
 	// REPL is a read-eval-print loop used to create a simple, minimalistic,
-	// easy-to-use command line interface for masterkey.
+	// easy-to-use command line interface for masterkey, with an automatic
+	// timeout that exits the program after a specified duration.
 	REPL struct {
 		prompt          string
 		commands        map[string]Command
@@ -20,6 +25,8 @@ type (
 		output          io.Writer
 		rl              *readline.Instance
 		stopfunc        func()
+		lastCommandTime int64
+		stopChan        chan struct{}
 	}
 
 	// Command is a command that can be registered with the REPL. It consists
@@ -38,13 +45,15 @@ type (
 	ActionFunc func([]string) (string, error)
 )
 
-// New instantiates a new REPL using the provided `prompt`.
-func New(prompt string) *REPL {
+// New instantiates a new REPL using the provided `prompt` and `timeout`.
+func New(prompt string, timeout time.Duration) *REPL {
 	r := &REPL{
-		commands: make(map[string]Command),
-		prompt:   prompt,
-		input:    os.Stdin,
-		output:   os.Stdout,
+		commands:        make(map[string]Command),
+		prompt:          prompt,
+		input:           os.Stdin,
+		output:          os.Stdout,
+		stopChan:        make(chan struct{}),
+		lastCommandTime: time.Now().Unix(),
 	}
 
 	// Add default commands clear, exit, and help
@@ -60,10 +69,7 @@ func New(prompt string) *REPL {
 		Name:  "exit",
 		Usage: "exit: exit the interactive prompt",
 		Action: func(args []string) (string, error) {
-			if r.stopfunc != nil {
-				r.stopfunc()
-			}
-			return "", r.rl.Close()
+			return "", r.Stop()
 		},
 	})
 
@@ -79,7 +85,33 @@ func New(prompt string) *REPL {
 		},
 	})
 
+	go func() {
+		for {
+			select {
+			case <-time.After(timeout):
+				if time.Since(time.Unix(atomic.LoadInt64(&r.lastCommandTime), 0)) > timeout {
+					r.Stop()
+					return
+				}
+			case <-r.stopChan:
+				return
+			}
+		}
+	}()
+
 	return r
+}
+
+// Stop exits the REPL and runs the configured `OnStop` func, if one exists.
+func (r *REPL) Stop() error {
+	close(r.stopChan)
+	if r.stopfunc != nil {
+		r.stopfunc()
+	}
+	if r.rl != nil {
+		return r.rl.Close()
+	}
+	return nil
 }
 
 // OnStop registers a function to be called when the REPL stops.
@@ -110,6 +142,10 @@ func (r *REPL) AddCommand(cmd Command) {
 
 // eval evaluates a line that was input to the REPL.
 func (r *REPL) eval(line string) (string, error) {
+	atomic.StoreInt64(&r.lastCommandTime, time.Now().Unix())
+	if line == "" {
+		return "", nil
+	}
 	args, err := shellwords.Parse(line)
 	if err != nil {
 		return "", err
@@ -150,14 +186,12 @@ func (r *REPL) Loop() error {
 			}
 			break
 		}
-		if line != "" {
-			res, err := r.eval(line)
-			if err != nil {
-				fmt.Fprintln(r.output, err.Error())
-				continue
-			}
-			fmt.Fprint(r.output, res)
+		res, err := r.eval(line)
+		if err != nil {
+			fmt.Fprintln(r.output, err.Error())
+			continue
 		}
+		fmt.Fprint(r.output, res)
 	}
 	return nil
 }
