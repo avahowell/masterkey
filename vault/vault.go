@@ -13,7 +13,7 @@ import (
 	"path"
 	"strings"
 
-	"github.com/johnathanhowell/masterkey/vault/filelock"
+	"github.com/johnathanhowell/masterkey/filelock"
 
 	"github.com/NebulousLabs/entropy-mnemonics"
 	"golang.org/x/crypto/nacl/secretbox"

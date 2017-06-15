@@ -77,10 +77,7 @@ func New(prompt string, timeout time.Duration) *REPL {
 		Name:  "clear",
 		Usage: "clear: clear the terminal",
 		Action: func(args []string) (string, error) {
-			_, err := readline.ClearScreen(r.output)
-			if err != nil {
-				return "", err
-			}
+			readline.ClearScreen(r.output)
 			return "cleared terminal", nil
 		},
 	})
