@@ -1,6 +1,7 @@
 package vault
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"reflect"
@@ -713,6 +714,15 @@ func TestNonceRotation(t *testing.T) {
 	}
 	if vopen.nonce == oldnonce {
 		t.Fatal("opened vault had the same nonce as the previous vault")
+	}
+
+	oldNonce := vopen.nonce
+	err = vopen.encrypt(make(map[string]*Credential))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Equal(oldNonce[:], vopen.nonce[:]) {
+		t.Fatal("encrypt reused a nonce")
 	}
 }
 
