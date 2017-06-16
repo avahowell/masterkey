@@ -510,7 +510,7 @@ func TestHeavyVault(t *testing.T) {
 		t.SkipNow()
 	}
 
-	size := 10000
+	size := 5000
 
 	v, err := New("testpass")
 	if err != nil {
@@ -685,6 +685,35 @@ func TestNewSaveOpen(t *testing.T) {
 	}
 }
 
+func TestLegacyLoadSave(t *testing.T) {
+	v, err := Open("testdata/oldvault.db", "testpass")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer v.Close()
+	testCredential := Credential{Username: "testuser", Password: "testpass"}
+	v.Add("testlocation", testCredential)
+	err = v.Save("testdata/oldvault-migrated.db")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove("testdata/oldvault-migrated.db")
+
+	vopen, err := Open("testdata/oldvault-migrated.db", "testpass")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer vopen.Close()
+
+	cred, err := vopen.Get("testlocation")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(&testCredential, cred) {
+		t.Fatal("credential did not match after migrating old vault")
+	}
+}
+
 func TestNonceRotation(t *testing.T) {
 	testCredential := Credential{Username: "testuser", Password: "testpass"}
 
@@ -695,6 +724,7 @@ func TestNonceRotation(t *testing.T) {
 
 	oldnonce := v.nonce
 	oldsecret := v.secret
+	oldsalt := v.salt
 
 	v.Add("testlocation", testCredential)
 	err = v.Save("pass.db")
@@ -714,6 +744,9 @@ func TestNonceRotation(t *testing.T) {
 	}
 	if vopen.nonce == oldnonce {
 		t.Fatal("opened vault had the same nonce as the previous vault")
+	}
+	if vopen.salt == oldsalt {
+		t.Fatal("Open did not rotate the salt")
 	}
 
 	oldNonce := vopen.nonce

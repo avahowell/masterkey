@@ -102,6 +102,8 @@ func New(passphrase string) (*Vault, error) {
 	return v, nil
 }
 
+// openVaultCompat opens an on-disk vault, using the legacy format
+// (nonce:data).
 func openVaultCompat(filename, passphrase string) (*Vault, error) {
 	bs, err := ioutil.ReadFile(filename)
 	if err != nil {
@@ -122,7 +124,6 @@ func openVaultCompat(filename, passphrase string) (*Vault, error) {
 	vault := &Vault{
 		data:   bs,
 		nonce:  nonce,
-		salt:   nonce,
 		secret: secret,
 	}
 
@@ -131,17 +132,18 @@ func openVaultCompat(filename, passphrase string) (*Vault, error) {
 		return nil, err
 	}
 
-	if _, err = io.ReadFull(rand.Reader, nonce[:]); err != nil {
+	if _, err = io.ReadFull(rand.Reader, vault.nonce[:]); err != nil {
+		panic(err)
+	}
+	if _, err = io.ReadFull(rand.Reader, vault.salt[:]); err != nil {
 		panic(err)
 	}
 
-	key, err = scrypt.Key([]byte(passphrase), nonce[:], scryptN, scryptR, scryptP, keyLen)
+	key, err = scrypt.Key([]byte(passphrase), vault.salt[:], scryptN, scryptR, scryptP, keyLen)
 	if err != nil {
 		return nil, err
 	}
-	copy(secret[:], key)
-	vault.secret = secret
-	vault.nonce = nonce
+	copy(vault.secret[:], key)
 
 	if err = vault.encrypt(creds); err != nil {
 		return nil, err
@@ -150,6 +152,7 @@ func openVaultCompat(filename, passphrase string) (*Vault, error) {
 	return vault, nil
 }
 
+// openVault opens an on-disk vault using the current format (salt:nonce:data).
 func openVault(filename, passphrase string) (*Vault, error) {
 	bs, err := ioutil.ReadFile(filename)
 	if err != nil {
@@ -180,6 +183,10 @@ func openVault(filename, passphrase string) (*Vault, error) {
 		return nil, err
 	}
 
+	_, err = io.ReadFull(rand.Reader, vault.nonce[:])
+	if err != nil {
+		panic(err)
+	}
 	_, err = io.ReadFull(rand.Reader, vault.salt[:])
 	if err != nil {
 		panic(err)
