@@ -55,6 +55,7 @@ type (
 	Vault struct {
 		data   []byte
 		nonce  [24]byte
+		salt   [24]byte
 		secret [32]byte
 		lock   *filelock.FileLock
 	}
@@ -72,13 +73,16 @@ type (
 // New creates a new, empty, vault using the passphrase provided to
 // `passphrase`.
 func New(passphrase string) (*Vault, error) {
-	var nonce [24]byte
+	var nonce, salt [24]byte
 	if _, err := io.ReadFull(rand.Reader, nonce[:]); err != nil {
+		panic(err)
+	}
+	if _, err := io.ReadFull(rand.Reader, salt[:]); err != nil {
 		panic(err)
 	}
 
 	var secret [32]byte
-	key, err := scrypt.Key([]byte(passphrase), nonce[:], scryptN, scryptR, scryptP, keyLen)
+	key, err := scrypt.Key([]byte(passphrase), salt[:], scryptN, scryptR, scryptP, keyLen)
 	if err != nil {
 		panic(err)
 	}
@@ -86,6 +90,7 @@ func New(passphrase string) (*Vault, error) {
 
 	v := &Vault{
 		nonce:  nonce,
+		salt:   salt,
 		secret: secret,
 	}
 
@@ -97,11 +102,7 @@ func New(passphrase string) (*Vault, error) {
 	return v, nil
 }
 
-// Open reads a vault from the location provided to `filename` and decrypts
-// it using `passphrase`. If decryption succeeds, new nonce is chosen and the
-// vault is re-encrypted, ensuring nonces are unique and not reused across
-// sessions.
-func Open(filename string, passphrase string) (*Vault, error) {
+func openVaultCompat(filename, passphrase string) (*Vault, error) {
 	bs, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return nil, err
@@ -121,6 +122,7 @@ func Open(filename string, passphrase string) (*Vault, error) {
 	vault := &Vault{
 		data:   bs,
 		nonce:  nonce,
+		salt:   nonce,
 		secret: secret,
 	}
 
@@ -129,28 +131,92 @@ func Open(filename string, passphrase string) (*Vault, error) {
 		return nil, err
 	}
 
-	lock, err := filelock.Lock(filename)
-	if err != nil {
-		return nil, err
-	}
-
-	vault.lock = lock
-
 	if _, err = io.ReadFull(rand.Reader, nonce[:]); err != nil {
 		panic(err)
 	}
 
 	key, err = scrypt.Key([]byte(passphrase), nonce[:], scryptN, scryptR, scryptP, keyLen)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	copy(secret[:], key)
-
 	vault.secret = secret
 	vault.nonce = nonce
+
 	if err = vault.encrypt(creds); err != nil {
 		return nil, err
 	}
+
+	return vault, nil
+}
+
+func openVault(filename, passphrase string) (*Vault, error) {
+	bs, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
+
+	var salt, nonce [24]byte
+	copy(salt[:], bs[:24])
+	copy(nonce[:], bs[24:48])
+
+	key, err := scrypt.Key([]byte(passphrase), salt[:], scryptN, scryptR, scryptP, keyLen)
+	if err != nil {
+		return nil, err
+	}
+
+	var secret [32]byte
+	copy(secret[:], key)
+
+	vault := &Vault{
+		data:   bs[len(salt):],
+		nonce:  nonce,
+		secret: secret,
+		salt:   salt,
+	}
+
+	creds, err := vault.decrypt()
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = io.ReadFull(rand.Reader, vault.salt[:])
+	if err != nil {
+		panic(err)
+	}
+
+	key, err = scrypt.Key([]byte(passphrase), vault.salt[:], scryptN, scryptR, scryptP, keyLen)
+	if err != nil {
+		return nil, err
+	}
+	copy(vault.secret[:], key)
+
+	err = vault.encrypt(creds)
+	if err != nil {
+		return nil, err
+	}
+
+	return vault, nil
+}
+
+// Open reads a vault from the location provided to `filename` and decrypts
+// it using `passphrase`. If decryption succeeds, new nonce is chosen and the
+// vault is re-encrypted, ensuring nonces are unique and not reused across
+// sessions.
+func Open(filename string, passphrase string) (*Vault, error) {
+	lock, err := filelock.Lock(filename)
+	if err != nil {
+		return nil, err
+	}
+	vault, err := openVault(filename, passphrase)
+	if err != nil {
+		vault, err = openVaultCompat(filename, passphrase)
+		if err != nil {
+			lock.Unlock()
+			return nil, err
+		}
+	}
+	vault.lock = lock
 
 	return vault, nil
 }
@@ -213,6 +279,9 @@ func (v *Vault) encrypt(creds map[string]*Credential) error {
 	if err != nil {
 		return err
 	}
+	if _, err = io.ReadFull(rand.Reader, v.nonce[:]); err != nil {
+		panic(err)
+	}
 
 	v.data = secretbox.Seal(v.nonce[:], buf.Bytes(), &v.nonce, &v.secret)
 
@@ -259,6 +328,10 @@ func (v *Vault) Save(filename string) error {
 	}
 	defer tempfile.Close()
 
+	_, err = tempfile.Write(v.salt[:])
+	if err != nil {
+		return err
+	}
 	_, err = tempfile.Write(v.data)
 	if err != nil {
 		return err
@@ -533,13 +606,16 @@ func (v *Vault) ChangePassphrase(newpassphrase string) error {
 		return err
 	}
 
-	var nonce [24]byte
+	var nonce, salt [24]byte
 	if _, err := io.ReadFull(rand.Reader, nonce[:]); err != nil {
+		panic(err)
+	}
+	if _, err := io.ReadFull(rand.Reader, salt[:]); err != nil {
 		panic(err)
 	}
 
 	var secret [32]byte
-	key, err := scrypt.Key([]byte(newpassphrase), nonce[:], scryptN, scryptR, scryptP, keyLen)
+	key, err := scrypt.Key([]byte(newpassphrase), salt[:], scryptN, scryptR, scryptP, keyLen)
 	if err != nil {
 		panic(err)
 	}
@@ -547,6 +623,7 @@ func (v *Vault) ChangePassphrase(newpassphrase string) error {
 
 	v.nonce = nonce
 	v.secret = secret
+	v.salt = salt
 
 	err = v.encrypt(creds)
 	if err != nil {
