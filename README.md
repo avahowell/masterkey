@@ -1,6 +1,6 @@
 # masterkey
-[![Go Report Card](https://goreportcard.com/badge/github.com/johnathanhowell/masterkey)](https://goreportcard.com/report/github.com/johnathanhowell/masterkey)
-[![Build Status](https://travis-ci.org/johnathanhowell/masterkey.svg?branch=master)](https://travis-ci.org/johnathanhowell/masterkey)
+[![Go Report Card](https://goreportcard.com/badge/github.com/avahowell/masterkey)](https://goreportcard.com/report/github.com/avahowell/masterkey)
+[![Build Status](https://travis-ci.org/avahowell/masterkey.svg?branch=master)](https://travis-ci.org/avahowell/masterkey)
 
 masterkey is a simple, secure password manager written in Go using `nacl/secretbox.` It stores credentials given a `location`, where each credential is represented by a `Username` and a `Password`. Locations, Usernames, and Passwords are always encrypted using a scrypt key derived from the input passphrase and never stored on disk or in memory. Unlike `password-store` and a few other password managers, an attacker with access to the encrypted database can not discern how many passwords are stored, the labels (`locations`) for the passwords, or the usernames associated with the passwords.
 
@@ -8,7 +8,7 @@ masterkey is a simple, secure password manager written in Go using `nacl/secretb
 
 Install `masterkey` either by downloading a release or using `go get`:
 
-`go get github.com/johnathanhowell/masterkey`
+`go get github.com/avahowell/masterkey`
 
 Now create your vault, in this example we'll create it at `./vault.db`. New vaults are created using the `-new` flag, existing vaults can be opened by simplly omitting the `-new` flag.
 
@@ -30,15 +30,15 @@ get [location]: get the credential at [location]
 add [location] [username] [password]: add a credential to the vault
 gen [location] [username]: generate a password and add it to the vault
 delete [location]: remove [location] from the vault.
-masterkey [vault.db] > gen github.com johnathanhowell
+masterkey [vault.db] > gen github.com avahowell
 github.com generated successfully
 masterkey [vault.db] > get github.com
-Username: johnathanhowell
+Username: avahowell
 Password: speedy dwindling bicycle cedar putty urgent myriad ensign jaws gambit digit usual
 masterkey [vault.db] > addmeta github.com 2fa "pretty secure 2fa token"
 2fa added to github.com successfully.
 masterkey [vault.db] > get github.com
-Username: johnathanhowell
+Username: avahowell
 Password: speedy dwindling bicycle cedar putty urgent myriad ensign jaws gambit digit usual
 2fa: pretty secure token
 masterkey [vault.db] > clip github.com
