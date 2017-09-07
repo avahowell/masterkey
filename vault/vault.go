@@ -639,3 +639,7 @@ func (v *Vault) ChangePassphrase(newpassphrase string) error {
 
 	return nil
 }
+
+func (v *Vault) Merge(otherVault *Vault) error {
+	return nil
+}

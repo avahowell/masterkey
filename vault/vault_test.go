@@ -12,6 +12,78 @@ import (
 	"github.com/avahowell/masterkey/filelock"
 )
 
+func TestVaultMerge(t *testing.T) {
+	// test merging two vaults that have no conflicts
+	origCreds := []struct {
+		Location string
+		Cred     Credential
+	}{
+		{Location: "testloc1", Cred: Credential{Username: "testuser", Password: "testpass"}},
+		{Location: "testloc2", Cred: Credential{Username: "testuser1", Password: "testpass1"}},
+		{Location: "testloc3", Cred: Credential{Username: "testuser2", Password: "testpass2"}},
+	}
+	mergeCreds := []struct {
+		Location string
+		Cred     Credential
+	}{
+		{Location: "testloc4", Cred: Credential{Username: "testuser4", Password: "testpass4"}},
+		{Location: "testloc5", Cred: Credential{Username: "testuser5", Password: "testpass5"}},
+		{Location: "testloc6", Cred: Credential{Username: "testuser6", Password: "testpass6"}},
+	}
+
+	v, err := New("testpass")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer v.Close()
+	for _, cred := range origCreds {
+		err = v.Add(cred.Location, cred.Cred)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	v2, err := New("testpass")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer v2.Close()
+	for _, cred := range mergeCreds {
+		err = v.Add(cred.Location, cred.Cred)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	err = v.Merge(v2)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expectedCreds := append(origCreds, mergeCreds...)
+	locations, err := v.Locations()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, cred := range expectedCreds {
+		hasCred := false
+		for _, loc := range locations {
+			if loc == cred.Location {
+				gotCred, err := v.Get(loc)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if reflect.DeepEqual(gotCred, cred.Cred) {
+					hasCred = true
+				}
+			}
+		}
+		if !hasCred {
+			t.Fatal("merged vault missing credential:", cred)
+		}
+	}
+}
+
 func TestVaultLock(t *testing.T) {
 	v, err := New("testpass")
 	if err != nil {
