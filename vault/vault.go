@@ -641,5 +641,23 @@ func (v *Vault) ChangePassphrase(newpassphrase string) error {
 }
 
 func (v *Vault) Merge(otherVault *Vault) error {
+	otherLocations, err := otherVault.Locations()
+	if err != nil {
+		return err
+	}
+	for _, loc := range otherLocations {
+		_, err := v.Get(loc)
+		if err == nil {
+			return errors.New("merge conflict")
+		}
+		otherCred, err := otherVault.Get(loc)
+		if err != nil {
+			return err
+		}
+		err = v.Add(loc, *otherCred)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }

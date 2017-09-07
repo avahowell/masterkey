@@ -89,6 +89,7 @@ func TestVaultLock(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer v.Close()
 
 	err = v.Add("testlocation", Credential{Username: "testusername", Password: "testpassword"})
 	if err != nil {
