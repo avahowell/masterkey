@@ -640,6 +640,9 @@ func (v *Vault) ChangePassphrase(newpassphrase string) error {
 	return nil
 }
 
+// Merge adds every credential in otherVault to the vault. If a credential
+// already exists with the same location in the vault, an error will be
+// returned.
 func (v *Vault) Merge(otherVault *Vault) error {
 	otherLocations, err := otherVault.Locations()
 	if err != nil {
@@ -648,7 +651,7 @@ func (v *Vault) Merge(otherVault *Vault) error {
 	for _, loc := range otherLocations {
 		_, err := v.Get(loc)
 		if err == nil {
-			return errors.New("merge conflict")
+			return fmt.Errorf("merge conflict: %v already exists in vault", loc)
 		}
 		otherCred, err := otherVault.Get(loc)
 		if err != nil {

@@ -12,8 +12,53 @@ import (
 	"github.com/avahowell/masterkey/filelock"
 )
 
+func TestVaultMergeConflict(t *testing.T) {
+	origCreds := []struct {
+		Location string
+		Cred     Credential
+	}{
+		{Location: "testlocation", Cred: Credential{Username: "test1", Password: "test1"}},
+	}
+	mergeCreds := []struct {
+		Location string
+		Cred     Credential
+	}{
+		{Location: "testlocation", Cred: Credential{Username: "test1", Password: "test1"}},
+	}
+
+	v, err := New("testpass")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer v.Close()
+	for _, cred := range origCreds {
+		err = v.Add(cred.Location, cred.Cred)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	v2, err := New("testpass")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer v2.Close()
+	for _, cred := range mergeCreds {
+		err = v2.Add(cred.Location, cred.Cred)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	err = v.Merge(v2)
+	if err == nil {
+		t.Fatal("expected merge with conflicting credentials to error")
+	}
+	if !strings.Contains(err.Error(), "already exists in vault") {
+		t.Fatal("expected merge with conflicting credentials to error")
+	}
+}
+
 func TestVaultMerge(t *testing.T) {
-	// test merging two vaults that have no conflicts
 	origCreds := []struct {
 		Location string
 		Cred     Credential
@@ -49,7 +94,7 @@ func TestVaultMerge(t *testing.T) {
 	}
 	defer v2.Close()
 	for _, cred := range mergeCreds {
-		err = v.Add(cred.Location, cred.Cred)
+		err = v2.Add(cred.Location, cred.Cred)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -73,7 +118,7 @@ func TestVaultMerge(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				if reflect.DeepEqual(gotCred, cred.Cred) {
+				if reflect.DeepEqual(*gotCred, cred.Cred) {
 					hasCred = true
 				}
 			}
