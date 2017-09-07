@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/johnathanhowell/masterkey/filelock"
+	"github.com/avahowell/masterkey/filelock"
 )
 
 func TestVaultLock(t *testing.T) {

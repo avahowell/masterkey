@@ -7,10 +7,10 @@ import (
 	"time"
 
 	"github.com/howeyc/gopass"
-	"github.com/johnathanhowell/masterkey/filelock"
-	"github.com/johnathanhowell/masterkey/repl"
-	"github.com/johnathanhowell/masterkey/secureclip"
-	"github.com/johnathanhowell/masterkey/vault"
+	"github.com/avahowell/masterkey/filelock"
+	"github.com/avahowell/masterkey/repl"
+	"github.com/avahowell/masterkey/secureclip"
+	"github.com/avahowell/masterkey/vault"
 )
 
 const usage = `Usage: masterkey [-new] vault`

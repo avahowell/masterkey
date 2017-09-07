@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/atotto/clipboard"
-	"github.com/johnathanhowell/masterkey/vault"
+	"github.com/avahowell/masterkey/vault"
 )
 
 func TestListCommand(t *testing.T) {
