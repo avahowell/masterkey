@@ -5,10 +5,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/howeyc/gopass"
 	"github.com/avahowell/masterkey/repl"
 	"github.com/avahowell/masterkey/secureclip"
 	"github.com/avahowell/masterkey/vault"
+	"github.com/howeyc/gopass"
 )
 
 var (
@@ -122,7 +122,41 @@ var (
 			Usage:  "changepassword: change the master password for the vault",
 		}
 	}
+
+	mergeCmd = func(v *vault.Vault) repl.Command {
+		return repl.Command{
+			Name:   "merge",
+			Action: merge(v),
+			Usage:  "merge [location]: merge the vault at location with the currently open vault.",
+		}
+	}
 )
+
+func merge(v *vault.Vault) repl.ActionFunc {
+	return func(args []string) (string, error) {
+		if len(args) != 1 {
+			return "", fmt.Errorf("merge requires one argument, the path of the vault to merge")
+		}
+		vaultPath := args[0]
+		fmt.Print("Enter the password for the vault to be merged: ")
+		pass, err := gopass.GetPasswd()
+		if err != nil {
+			return "", err
+		}
+
+		vmerge, err := vault.Open(vaultPath, string(pass))
+		if err != nil {
+			return "", err
+		}
+		defer vmerge.Close()
+
+		err = v.Merge(vmerge)
+		if err != nil {
+			return "", err
+		}
+		return "vault merged successfully.", nil
+	}
+}
 
 func changepassword(v *vault.Vault) repl.ActionFunc {
 	return func(args []string) (string, error) {
