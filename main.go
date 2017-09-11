@@ -6,11 +6,11 @@ import (
 	"os"
 	"time"
 
-	"github.com/howeyc/gopass"
 	"github.com/avahowell/masterkey/filelock"
 	"github.com/avahowell/masterkey/repl"
 	"github.com/avahowell/masterkey/secureclip"
 	"github.com/avahowell/masterkey/vault"
+	"github.com/howeyc/gopass"
 )
 
 const usage = `Usage: masterkey [-new] vault`
@@ -37,6 +37,7 @@ func setupRepl(v *vault.Vault, vaultPath string, timeout time.Duration) *repl.RE
 	r.AddCommand(deletemetaCmd(v))
 	r.AddCommand(deleteCmd(v))
 	r.AddCommand(changePasswordCmd(v))
+	r.AddCommand(mergeCmd(v))
 
 	r.OnStop(func() {
 		fmt.Println("clearing clipboard and saving vault")

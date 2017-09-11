@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/avahowell/masterkey/filelock"
@@ -211,13 +212,17 @@ func openVault(filename, passphrase string) (*Vault, error) {
 // vault is re-encrypted, ensuring nonces are unique and not reused across
 // sessions.
 func Open(filename string, passphrase string) (*Vault, error) {
-	lock, err := filelock.Lock(filename)
+	vaultPath, err := filepath.Abs(filename)
 	if err != nil {
 		return nil, err
 	}
-	vault, err := openVault(filename, passphrase)
+	lock, err := filelock.Lock(vaultPath)
 	if err != nil {
-		vault, err = openVaultCompat(filename, passphrase)
+		return nil, err
+	}
+	vault, err := openVault(vaultPath, passphrase)
+	if err != nil {
+		vault, err = openVaultCompat(vaultPath, passphrase)
 		if err != nil {
 			lock.Unlock()
 			return nil, err
