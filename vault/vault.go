@@ -13,6 +13,7 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"sort"
 
 	"github.com/avahowell/masterkey/filelock"
 
@@ -485,6 +486,9 @@ func (v *Vault) Locations() ([]string, error) {
 	for location := range creds {
 		locations = append(locations, location)
 	}
+
+	sort.Strings(locations)
+
 	return locations, nil
 }
 
