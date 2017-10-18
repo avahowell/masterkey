@@ -1,7 +1,6 @@
 # masterkey
 [![Go Report Card](https://goreportcard.com/badge/github.com/avahowell/masterkey)](https://goreportcard.com/report/github.com/avahowell/masterkey)
 [![Build Status](https://travis-ci.org/avahowell/masterkey.svg?branch=master)](https://travis-ci.org/avahowell/masterkey)
-[![gitcheese.com](https://s3.amazonaws.com/gitcheese-ui-master/images/badge.svg)](https://www.gitcheese.com/donate/users/8183920/repos/74554635)
 
 masterkey is a simple, secure password manager written in Go using `nacl/secretbox.` It stores credentials given a `location`, where each credential is represented by a `Username` and a `Password`. Locations, Usernames, and Passwords are always encrypted using a scrypt key derived from the input passphrase and never stored on disk or in memory. Unlike `password-store` and a few other password managers, an attacker with access to the encrypted database can not discern how many passwords are stored, the labels (`locations`) for the passwords, or the usernames associated with the passwords.
 
@@ -83,4 +82,8 @@ This will use the "Title" field to determine the Location, "Username" for userna
 ## Planned Features
 
 - Web interface
+
+## Donate
+
+If you find masterkey useful, you can send some bitcoin to 39xGq6Y1ANxmDUTvWz75mscruYiDGYmGNe.
 
