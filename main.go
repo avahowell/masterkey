@@ -10,7 +10,8 @@ import (
 	"github.com/avahowell/masterkey/repl"
 	"github.com/avahowell/masterkey/secureclip"
 	"github.com/avahowell/masterkey/vault"
-	"github.com/howeyc/gopass"
+
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 const usage = `Usage: masterkey [-new] vault`
@@ -18,6 +19,13 @@ const usage = `Usage: masterkey [-new] vault`
 func die(err error) {
 	fmt.Println(err)
 	os.Exit(1)
+}
+
+func askPassword(prompt string) (string, error) {
+	fmt.Print(prompt)
+	pw, err := terminal.ReadPassword(0)
+	fmt.Println()
+	return string(pw), err
 }
 
 func setupRepl(v *vault.Vault, vaultPath string, timeout time.Duration) *repl.REPL {
@@ -64,14 +72,13 @@ func main() {
 	var v *vault.Vault
 
 	if !*createVault {
-		fmt.Print("Password for " + vaultPath + ": ")
-		passphrase, err := gopass.GetPasswd()
+		passphrase, err := askPassword("Password for " + vaultPath + ": ")
 		if err != nil {
 			die(err)
 		}
 		fmt.Printf("Opening %v...\n", vaultPath)
 
-		v, err = vault.Open(vaultPath, string(passphrase))
+		v, err = vault.Open(vaultPath, passphrase)
 		if err != nil {
 			if err == filelock.ErrLocked {
 				die(fmt.Errorf("%v is open by another masterkey instance! exit that instance first, or remove %v before opening this vault.", vaultPath, vaultPath+".lck"))
@@ -80,20 +87,18 @@ func main() {
 		}
 		defer v.Close()
 	} else {
-		fmt.Print("Enter a passphrase for " + vaultPath + ": ")
-		passphrase1, err := gopass.GetPasswd()
+		passphrase1, err := askPassword("Enter a passphrase for " + vaultPath + ": ")
 		if err != nil {
 			die(err)
 		}
-		fmt.Print("Enter the same passphrase again: ")
-		passphrase2, err := gopass.GetPasswd()
+		passphrase2, err := askPassword("Enter the same passphrase again: ")
 		if err != nil {
 			die(err)
 		}
-		if string(passphrase1) != string(passphrase2) {
+		if passphrase1 != passphrase2 {
 			die(fmt.Errorf("passphrases do not match"))
 		}
-		v, err = vault.New(string(passphrase1))
+		v, err = vault.New(passphrase1)
 		if err != nil {
 			die(err)
 		}

@@ -8,7 +8,6 @@ import (
 	"github.com/avahowell/masterkey/repl"
 	"github.com/avahowell/masterkey/secureclip"
 	"github.com/avahowell/masterkey/vault"
-	"github.com/howeyc/gopass"
 )
 
 var (
@@ -138,13 +137,12 @@ func merge(v *vault.Vault) repl.ActionFunc {
 			return "", fmt.Errorf("merge requires one argument, the path of the vault to merge")
 		}
 		vaultPath := args[0]
-		fmt.Print("Enter the password for the vault to be merged: ")
-		pass, err := gopass.GetPasswd()
+		pass, err := askPassword("Enter the password for the vault to be merged: ")
 		if err != nil {
 			return "", err
 		}
 
-		vmerge, err := vault.Open(vaultPath, string(pass))
+		vmerge, err := vault.Open(vaultPath, pass)
 		if err != nil {
 			return "", err
 		}
@@ -160,22 +158,20 @@ func merge(v *vault.Vault) repl.ActionFunc {
 
 func changepassword(v *vault.Vault) repl.ActionFunc {
 	return func(args []string) (string, error) {
-		fmt.Print("Enter a new password for this vault: ")
-		pass1, err := gopass.GetPasswd()
+		pass1, err := askPassword("Enter a new password for this vault: ")
 		if err != nil {
 			return "", err
 		}
-		fmt.Print("Again, please: ")
-		pass2, err := gopass.GetPasswd()
+		pass2, err := askPassword("Again, please: ")
 		if err != nil {
 			return "", err
 		}
 
-		if string(pass1) != string(pass2) {
+		if pass1 != pass2 {
 			return "", fmt.Errorf("passwords did not match")
 		}
 
-		err = v.ChangePassphrase(string(pass1))
+		err = v.ChangePassphrase(pass1)
 		if err != nil {
 			return "", err
 		}
