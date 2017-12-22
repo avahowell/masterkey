@@ -12,12 +12,12 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"strings"
 	"sort"
+	"strings"
 
 	"github.com/avahowell/masterkey/filelock"
+	"github.com/avahowell/masterkey/pwgen"
 
-	"github.com/NebulousLabs/entropy-mnemonics"
 	"golang.org/x/crypto/nacl/secretbox"
 	"golang.org/x/crypto/scrypt"
 )
@@ -27,7 +27,7 @@ const (
 	scryptR        = 8
 	scryptP        = 1
 	keyLen         = 32
-	genEntropySize = 16
+	genPasswordLen = 32
 )
 
 var (
@@ -245,26 +245,15 @@ func (v *Vault) Close() error {
 // Generate generates a new strong mnemonic passphrase and Add()s it to the
 // vault.
 func (v *Vault) Generate(location string, username string) error {
-	buf := new(bytes.Buffer)
-	_, err := io.CopyN(buf, rand.Reader, genEntropySize)
-	if err != nil {
-		panic(err)
-	}
-	phrase, err := mnemonics.ToPhrase(buf.Bytes(), mnemonics.English)
+	phrase, err := pwgen.GeneratePassphrase(pwgen.CharsetAlphaNum, genPasswordLen)
 	if err != nil {
 		return err
 	}
-
 	cred := Credential{
 		Username: username,
-		Password: phrase.String(),
+		Password: phrase,
 	}
-
-	err = v.Add(location, cred)
-	if err != nil {
-		return err
-	}
-	return nil
+	return v.Add(location, cred)
 }
 
 // decrypt decrypts the vault and returns the credential data as a map of
