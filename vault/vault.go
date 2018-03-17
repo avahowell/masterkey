@@ -3,6 +3,7 @@ package vault
 import (
 	"bytes"
 	"crypto/rand"
+	"crypto/subtle"
 	"encoding/csv"
 	"encoding/gob"
 	"errors"
@@ -88,7 +89,7 @@ func New(passphrase string) (*Vault, error) {
 	if err != nil {
 		panic(err)
 	}
-	copy(secret[:], key)
+	subtle.ConstantTimeCopy(1, secret[:], key)
 
 	v := &Vault{
 		nonce:  nonce,
@@ -113,7 +114,7 @@ func openVaultCompat(filename, passphrase string) (*Vault, error) {
 	}
 
 	var nonce [24]byte
-	copy(nonce[:], bs[:24])
+	subtle.ConstantTimeCopy(1, nonce[:], bs[:24])
 
 	key, err := scrypt.Key([]byte(passphrase), nonce[:], scryptN, scryptR, scryptP, keyLen)
 	if err != nil {
@@ -121,7 +122,7 @@ func openVaultCompat(filename, passphrase string) (*Vault, error) {
 	}
 
 	var secret [32]byte
-	copy(secret[:], key)
+	subtle.ConstantTimeCopy(1, secret[:], key)
 
 	vault := &Vault{
 		data:   bs,
@@ -145,7 +146,7 @@ func openVaultCompat(filename, passphrase string) (*Vault, error) {
 	if err != nil {
 		return nil, err
 	}
-	copy(vault.secret[:], key)
+	subtle.ConstantTimeCopy(1, vault.secret[:], key)
 
 	if err = vault.encrypt(creds); err != nil {
 		return nil, err
@@ -162,8 +163,8 @@ func openVault(filename, passphrase string) (*Vault, error) {
 	}
 
 	var salt, nonce [24]byte
-	copy(salt[:], bs[:24])
-	copy(nonce[:], bs[24:48])
+	subtle.ConstantTimeCopy(1, salt[:], bs[:24])
+	subtle.ConstantTimeCopy(1, nonce[:], bs[24:48])
 
 	key, err := scrypt.Key([]byte(passphrase), salt[:], scryptN, scryptR, scryptP, keyLen)
 	if err != nil {
@@ -171,7 +172,7 @@ func openVault(filename, passphrase string) (*Vault, error) {
 	}
 
 	var secret [32]byte
-	copy(secret[:], key)
+	subtle.ConstantTimeCopy(1, secret[:], key)
 
 	vault := &Vault{
 		data:   bs[len(salt):],
@@ -198,7 +199,7 @@ func openVault(filename, passphrase string) (*Vault, error) {
 	if err != nil {
 		return nil, err
 	}
-	copy(vault.secret[:], key)
+	subtle.ConstantTimeCopy(1, vault.secret[:], key)
 
 	err = vault.encrypt(creds)
 	if err != nil {
@@ -624,7 +625,7 @@ func (v *Vault) ChangePassphrase(newpassphrase string) error {
 	if err != nil {
 		panic(err)
 	}
-	copy(secret[:], key)
+	subtle.ConstantTimeCopy(1, secret[:], key)
 
 	v.nonce = nonce
 	v.secret = secret
