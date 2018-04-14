@@ -23,7 +23,7 @@ func die(err error) {
 
 func askPassword(prompt string) (string, error) {
 	fmt.Print(prompt)
-	pw, err := terminal.ReadPassword(0)
+	pw, err := terminal.ReadPassword(int(os.Stdin.Fd()))
 	fmt.Println()
 	return string(pw), err
 }
