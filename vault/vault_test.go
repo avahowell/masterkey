@@ -129,6 +129,22 @@ func TestVaultMerge(t *testing.T) {
 	}
 }
 
+func TestVaultClose(t *testing.T) {
+	v, err := New("testpass")
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = v.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, b := range v.secret {
+		if b != 0x00 {
+			t.Fatal("close did not erase v.secret")
+		}
+	}
+}
+
 func TestVaultLock(t *testing.T) {
 	v, err := New("testpass")
 	if err != nil {
@@ -215,7 +231,7 @@ func TestChangePassphrase(t *testing.T) {
 	}
 	defer v2.Close()
 
-	_, err = v.Get("testlocation")
+	_, err = v2.Get("testlocation")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -647,11 +663,13 @@ func TestHeavyVault(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer os.Remove("testvault.db")
+	v.Close()
 
 	vopen, err := Open("testvault.db", "testpass")
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer vopen.Close()
 
 	for i := 0; i < size; i++ {
 		cred, err := vopen.Get(fmt.Sprintf("testlocation%v", i))

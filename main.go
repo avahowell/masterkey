@@ -102,6 +102,7 @@ func main() {
 		if err != nil {
 			die(err)
 		}
+		defer v.Close()
 		err = v.Save(vaultPath)
 		if err != nil {
 			die(err)

@@ -237,6 +237,9 @@ func Open(filename string, passphrase string) (*Vault, error) {
 
 // Close releases the lock acquired by calling Open() on a vault.
 func (v *Vault) Close() error {
+	for i := range v.secret {
+		v.secret[i] = 0x00
+	}
 	if v.lock != nil {
 		return v.lock.Unlock()
 	}
