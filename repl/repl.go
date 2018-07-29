@@ -88,7 +88,7 @@ func New(prompt string, timeout time.Duration) *REPL {
 			case <-time.After(timeout):
 				if time.Since(time.Unix(atomic.LoadInt64(&r.lastCommandTime), 0)) > timeout {
 					r.Stop()
-					return
+					os.Exit(0)
 				}
 			case <-r.stopChan:
 				return
@@ -104,9 +104,6 @@ func (r *REPL) Stop() error {
 	close(r.stopChan)
 	if r.stopfunc != nil {
 		r.stopfunc()
-	}
-	if r.rl != nil {
-		return r.rl.Close()
 	}
 	return nil
 }
