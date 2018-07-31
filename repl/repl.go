@@ -19,6 +19,7 @@ type (
 	// timeout that exits the program after a specified duration.
 	REPL struct {
 		prompt          string
+		stopChan        chan struct{}
 		commands        map[string]Command
 		prefixCompleter *readline.PrefixCompleter
 		input           io.Reader
@@ -26,7 +27,7 @@ type (
 		rl              *readline.Instance
 		stopfunc        func()
 		lastCommandTime int64
-		stopChan        chan struct{}
+		timeout         time.Duration
 	}
 
 	// Command is a command that can be registered with the REPL. It consists
@@ -52,8 +53,9 @@ func New(prompt string, timeout time.Duration) *REPL {
 		prompt:          prompt,
 		input:           os.Stdin,
 		output:          os.Stdout,
-		stopChan:        make(chan struct{}),
+		timeout:         timeout,
 		lastCommandTime: time.Now().Unix(),
+		stopChan:        make(chan struct{}),
 	}
 
 	// Add default commands clear, exit, and help
@@ -81,20 +83,6 @@ func New(prompt string, timeout time.Duration) *REPL {
 			return "cleared terminal", nil
 		},
 	})
-
-	go func() {
-		for {
-			select {
-			case <-time.After(timeout):
-				if time.Since(time.Unix(atomic.LoadInt64(&r.lastCommandTime), 0)) > timeout {
-					r.Stop()
-					os.Exit(0)
-				}
-			case <-r.stopChan:
-				return
-			}
-		}
-	}()
 
 	return r
 }
@@ -165,27 +153,41 @@ func (r *REPL) Loop() error {
 		Prompt:       r.prompt,
 		AutoComplete: r.prefixCompleter,
 	})
-
 	if err != nil {
 		return err
 	}
-	defer rl.Close()
 	r.rl = rl
 
+	type result struct {
+		line string
+		err  error
+	}
+
 	for {
-		line, err := r.rl.Readline()
-		if err != nil {
-			if err == readline.ErrInterrupt && r.stopfunc != nil {
-				r.stopfunc()
+		lineresult := make(chan result)
+		go func() {
+			line, err := r.rl.Readline()
+			lineresult <- result{line, err}
+		}()
+		select {
+		case <-r.stopChan:
+			return nil
+		case <-time.After(r.timeout):
+			r.Stop()
+		case input := <-lineresult:
+			if input.err != nil {
+				if input.err == readline.ErrInterrupt {
+					r.Stop()
+				}
+				break
 			}
-			break
+			res, err := r.eval(input.line)
+			if err != nil {
+				fmt.Fprintln(r.output, err.Error())
+				continue
+			}
+			fmt.Fprint(r.output, res)
 		}
-		res, err := r.eval(line)
-		if err != nil {
-			fmt.Fprintln(r.output, err.Error())
-			continue
-		}
-		fmt.Fprint(r.output, res)
 	}
 	return nil
 }
