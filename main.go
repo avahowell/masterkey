@@ -10,7 +10,6 @@ import (
 	"github.com/avahowell/masterkey/repl"
 	"github.com/avahowell/masterkey/secureclip"
 	"github.com/avahowell/masterkey/vault"
-
 	"golang.org/x/crypto/ssh/terminal"
 )
 
@@ -58,6 +57,7 @@ func setupRepl(v *vault.Vault, vaultPath string, timeout time.Duration) *repl.RE
 
 func main() {
 	createVault := flag.Bool("new", false, "whether to create a new vault at the specified location")
+	repl := flag.Bool("repl", false, "spawn the repl shell")
 	timeout := flag.Duration("timeout", time.Minute*5, "how long to wait with no vault activity before exiting")
 
 	flag.Parse()
@@ -69,24 +69,8 @@ func main() {
 	}
 
 	vaultPath := flag.Args()[0]
-	var v *vault.Vault
 
-	if !*createVault {
-		passphrase, err := askPassword("Password for " + vaultPath + ": ")
-		if err != nil {
-			die(err)
-		}
-		fmt.Printf("Opening %v...\n", vaultPath)
-
-		v, err = vault.Open(vaultPath, passphrase)
-		if err != nil {
-			if err == filelock.ErrLocked {
-				die(fmt.Errorf("%v is open by another masterkey instance! exit that instance first, or remove %v before opening this vault.", vaultPath, vaultPath+".lck"))
-			}
-			die(err)
-		}
-		defer v.Close()
-	} else {
+	if *createVault {
 		passphrase1, err := askPassword("Enter a passphrase for " + vaultPath + ": ")
 		if err != nil {
 			die(err)
@@ -98,7 +82,7 @@ func main() {
 		if passphrase1 != passphrase2 {
 			die(fmt.Errorf("passphrases do not match"))
 		}
-		v, err = vault.New(passphrase1)
+		v, err := vault.New(passphrase1)
 		if err != nil {
 			die(err)
 		}
@@ -107,8 +91,30 @@ func main() {
 		if err != nil {
 			die(err)
 		}
+		return
 	}
 
-	r := setupRepl(v, vaultPath, *timeout)
-	r.Loop()
+	if *repl {
+		passphrase, err := askPassword("Password for " + vaultPath + ": ")
+		if err != nil {
+			die(err)
+		}
+		fmt.Printf("Opening %v...\n", vaultPath)
+
+		v, err := vault.Open(vaultPath, passphrase)
+		if err != nil {
+			if err == filelock.ErrLocked {
+				die(fmt.Errorf("%v is open by another masterkey instance! exit that instance first, or remove %v before opening this vault.", vaultPath, vaultPath+".lck"))
+			}
+			die(err)
+		}
+		defer v.Close()
+
+		r := setupRepl(v, vaultPath, *timeout)
+		r.Loop()
+
+		return
+	}
+
+	runUI(vaultPath, *timeout)
 }

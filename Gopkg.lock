@@ -3,37 +3,113 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:88151bc5a97db9d862946278eb7ea5bad657cbdd39c6cde34a99e91b509e7780"
   name = "github.com/atotto/clipboard"
   packages = ["."]
-  revision = "bc5958e1c8339112fc3347a89f3c482f416a69d3"
+  pruneopts = ""
+  revision = "5e2c7bddca04488284428a201e4a15615f7a5074"
 
 [[projects]]
+  digest = "1:ef15b38e9e9fecba7ae3e6e11d9a662f2c147acc25369d1b458d874f8cee17b1"
   name = "github.com/chzyer/readline"
   packages = ["."]
+  pruneopts = ""
   revision = "62c6fe6193755f722b8b8788aa7357be55a50ff1"
   version = "v1.4"
 
 [[projects]]
+  digest = "1:1f7c8d9d3401d33d7d2701f90bafe1e3a3e1780a4958de4a0433719445f0e931"
+  name = "github.com/gizak/termui"
+  packages = ["."]
+  pruneopts = ""
+  revision = "24acd523c756fd9728824cdfac66aad9d8982fb7"
+  version = "v2.2.0"
+
+[[projects]]
+  digest = "1:1516a9fcc70c63b45b5c753e84c8c74081676d44584a8014e96807c31aea9557"
+  name = "github.com/maruel/panicparse"
+  packages = ["stack"]
+  pruneopts = ""
+  revision = "785840568bdc7faa0dfb1cd6c643207f03271f64"
+  version = "v1.1.1"
+
+[[projects]]
+  digest = "1:82b912465c1da0668582a7d1117339c278e786c2536b3c3623029a0c7141c2d0"
+  name = "github.com/mattn/go-runewidth"
+  packages = ["."]
+  pruneopts = ""
+  revision = "ce7b0b5c7b45a81508558cd1dba6bb1e4ddb51bb"
+  version = "v0.0.3"
+
+[[projects]]
+  digest = "1:477cce5379198d3b8230b5c0961c61fcd1b337371cda81318e89a109245d83cb"
   name = "github.com/mattn/go-shellwords"
   packages = ["."]
+  pruneopts = ""
   revision = "02e3cf038dcea8290e44424da473dd12be796a8a"
   version = "v1.0.3"
 
 [[projects]]
   branch = "master"
-  name = "golang.org/x/crypto"
-  packages = ["nacl/secretbox","pbkdf2","poly1305","salsa20/salsa","scrypt","ssh/terminal"]
-  revision = "374053ea96cb300f8671b8d3b07edeeb06e203b4"
+  digest = "1:1856ee5a608d9e93667ac7811fc6360e2a9cae3ada938b3f13016c578b6d5f6e"
+  name = "github.com/mitchellh/go-wordwrap"
+  packages = ["."]
+  pruneopts = ""
+  revision = "ad45545899c7b13c020ea92b2072220eefad42b8"
 
 [[projects]]
   branch = "master"
+  digest = "1:20a553eff588d7abe1f05addf5f57cdbaef1d0f992427a0099b7eb51274b79cf"
+  name = "github.com/nsf/termbox-go"
+  packages = ["."]
+  pruneopts = ""
+  revision = "b66b20ab708e289ff1eb3e218478302e6aec28ce"
+
+[[projects]]
+  branch = "master"
+  digest = "1:793a79198b755828dec284c6f1325e24e09186f1b7ba818b65c7c35104ed86eb"
+  name = "golang.org/x/crypto"
+  packages = [
+    "argon2",
+    "blake2b",
+    "chacha20poly1305",
+    "internal/chacha20",
+    "internal/subtle",
+    "nacl/secretbox",
+    "pbkdf2",
+    "poly1305",
+    "salsa20/salsa",
+    "scrypt",
+    "ssh/terminal",
+  ]
+  pruneopts = ""
+  revision = "614d502a4dac94afa3a6ce146bd1736da82514c6"
+
+[[projects]]
+  branch = "master"
+  digest = "1:54d1b4c40f05586ddc168fc0f94ceebe85bdb285613ae4a5dafd5e43b52b4d0f"
   name = "golang.org/x/sys"
-  packages = ["unix","windows"]
-  revision = "2f1e207ee39ff70f3433e49c6eb52677a515e3b5"
+  packages = [
+    "cpu",
+    "unix",
+    "windows",
+  ]
+  pruneopts = ""
+  revision = "3b58ed4ad3395d483fc92d5d14123ce2c3581fec"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "3d8f0165f04e94c46527b769bd2831d6492f284c8274c9c0becd3ce8e356ff4b"
+  input-imports = [
+    "github.com/atotto/clipboard",
+    "github.com/chzyer/readline",
+    "github.com/gizak/termui",
+    "github.com/mattn/go-shellwords",
+    "golang.org/x/crypto/argon2",
+    "golang.org/x/crypto/chacha20poly1305",
+    "golang.org/x/crypto/nacl/secretbox",
+    "golang.org/x/crypto/scrypt",
+    "golang.org/x/crypto/ssh/terminal",
+  ]
   solver-name = "gps-cdcl"
   solver-version = 1

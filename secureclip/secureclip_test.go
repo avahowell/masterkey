@@ -8,7 +8,7 @@ import (
 )
 
 func TestSecureClip(t *testing.T) {
-	clipTimeout = time.Second * 2
+	clipTimeout = time.Second * 3
 	err := Clip("test")
 	if err != nil {
 		t.Fatal(err)
@@ -33,7 +33,7 @@ func TestSecureClipStaggeredCalls(t *testing.T) {
 	if err := Clip("test2"); err != nil {
 		t.Fatal(err)
 	}
-	time.Sleep(time.Second + time.Millisecond*500)
+	time.Sleep(time.Second)
 	contents, err := clipboard.ReadAll()
 	if err != nil {
 		t.Fatal(err)
@@ -41,7 +41,7 @@ func TestSecureClipStaggeredCalls(t *testing.T) {
 	if contents != "test2" {
 		t.Fatal("clipboard prematurely cleared")
 	}
-	time.Sleep(time.Second)
+	time.Sleep(time.Second * 2)
 	contents, err = clipboard.ReadAll()
 	if err != nil {
 		t.Fatal(err)

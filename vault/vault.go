@@ -6,6 +6,7 @@ import (
 	"crypto/subtle"
 	"encoding/csv"
 	"encoding/gob"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -28,13 +29,13 @@ import (
 )
 
 const (
-	scryptN        = 16384
-	scryptR        = 8
-	scryptP        = 1
-	argonTime      = 4
-	argonMemory    = 64 * 64 * 512
-	keyLen         = 32
-	genPasswordLen = 32
+	scryptN            = 16384
+	scryptR            = 8
+	scryptP            = 1
+	defaultArgonTime   = 3
+	defaultArgonMemory = 2e6 // argonMemory is in kilobibites, this equates to 2GB
+	keyLen             = 32
+	genPasswordLen     = 32
 )
 
 var (
@@ -62,11 +63,25 @@ type (
 	// with a passphrase. Passwords, usernames, and locations are encrypted
 	// using xchacha20 and authenticated with poly1305..
 	Vault struct {
-		data   []byte
-		nonce  [24]byte
-		salt   [24]byte
-		secret [32]byte
-		lock   *filelock.FileLock
+		data        []byte
+		nonce       [24]byte
+		salt        [24]byte
+		secret      [32]byte
+		argonTime   uint32
+		argonMemory uint32
+		argonLanes  uint8
+		lock        *filelock.FileLock
+	}
+
+	// vaultFile defines the file format of the vault stored on disk, encoded using
+	// json.
+	vaultFile struct {
+		ArgonTime   uint32
+		ArgonMemory uint32
+		ArgonLanes  uint8
+		Nonce       [24]byte
+		Salt        [24]byte
+		Data        []byte
 	}
 
 	// Credential defines a Username and Password, and a map of Metadata to store
@@ -91,13 +106,16 @@ func New(passphrase string) (*Vault, error) {
 	}
 
 	var secret [32]byte
-	skb := argon2.IDKey([]byte(passphrase), salt[:], argonTime, argonMemory, uint8(runtime.NumCPU()), keyLen)
+	skb := argon2.IDKey([]byte(passphrase), salt[:], defaultArgonTime, defaultArgonMemory, uint8(runtime.NumCPU()), keyLen)
 	subtle.ConstantTimeCopy(1, secret[:], skb)
 
 	v := &Vault{
-		nonce:  nonce,
-		salt:   salt,
-		secret: secret,
+		nonce:       nonce,
+		salt:        salt,
+		secret:      secret,
+		argonTime:   defaultArgonTime,
+		argonMemory: defaultArgonMemory,
+		argonLanes:  uint8(runtime.NumCPU()),
 	}
 
 	err := v.encrypt(make(map[string]*Credential))
@@ -109,7 +127,7 @@ func New(passphrase string) (*Vault, error) {
 }
 
 // openVaultCompat opens an on-disk vault, using the legacy format
-// (NACL/Secretbox, scrypt)
+// (NACL/Secretbox, scrypt).
 func openVaultCompat(filename, passphrase string) (*Vault, error) {
 	bs, err := ioutil.ReadFile(filename)
 	if err != nil {
@@ -140,11 +158,14 @@ func openVaultCompat(filename, passphrase string) (*Vault, error) {
 	}
 
 	v := &Vault{
-		salt:   salt,
-		secret: secret,
+		salt:        salt,
+		secret:      secret,
+		argonLanes:  uint8(runtime.NumCPU()),
+		argonTime:   defaultArgonTime,
+		argonMemory: defaultArgonMemory,
 	}
 
-	skb := argon2.IDKey([]byte(passphrase), salt[:], argonTime, argonMemory, uint8(runtime.NumCPU()), keyLen)
+	skb := argon2.IDKey([]byte(passphrase), salt[:], v.argonTime, v.argonMemory, v.argonLanes, keyLen)
 	subtle.ConstantTimeCopy(1, v.secret[:], skb)
 
 	err = v.encrypt(credentials)
@@ -157,24 +178,28 @@ func openVaultCompat(filename, passphrase string) (*Vault, error) {
 
 // openVault opens an on-disk vault using the current format (salt:nonce:data).
 func openVault(filename, passphrase string) (*Vault, error) {
-	bs, err := ioutil.ReadFile(filename)
+	f, err := os.Open(filename)
+	if err != nil {
+		return nil, err
+	}
+	vf := vaultFile{}
+	err = json.NewDecoder(f).Decode(&vf)
 	if err != nil {
 		return nil, err
 	}
 
-	var salt, nonce [24]byte
-	subtle.ConstantTimeCopy(1, salt[:], bs[:24])
-	subtle.ConstantTimeCopy(1, nonce[:], bs[24:48])
-
-	skb := argon2.IDKey([]byte(passphrase), salt[:], argonTime, argonMemory, uint8(runtime.NumCPU()), keyLen)
+	skb := argon2.IDKey([]byte(passphrase), vf.Salt[:], vf.ArgonTime, vf.ArgonMemory, vf.ArgonLanes, keyLen)
 	var secret [32]byte
 	subtle.ConstantTimeCopy(1, secret[:], skb)
 
 	vault := &Vault{
-		data:   bs[len(salt):],
-		nonce:  nonce,
-		secret: secret,
-		salt:   salt,
+		data:        vf.Data,
+		nonce:       vf.Nonce,
+		secret:      secret,
+		salt:        vf.Salt,
+		argonTime:   vf.ArgonTime,
+		argonMemory: vf.ArgonMemory,
+		argonLanes:  vf.ArgonLanes,
 	}
 
 	creds, err := vault.decrypt()
@@ -191,7 +216,7 @@ func openVault(filename, passphrase string) (*Vault, error) {
 		panic(err)
 	}
 
-	skb = argon2.IDKey([]byte(passphrase), vault.salt[:], argonTime, argonMemory, uint8(runtime.NumCPU()), keyLen)
+	skb = argon2.IDKey([]byte(passphrase), vault.salt[:], vault.argonTime, vault.argonMemory, vault.argonLanes, keyLen)
 	subtle.ConstantTimeCopy(1, vault.secret[:], skb)
 
 	err = vault.encrypt(creds)
@@ -260,7 +285,7 @@ func (v *Vault) decrypt() (map[string]*Credential, error) {
 	if err != nil {
 		return nil, err
 	}
-	decryptedData, err := aead.Open(nil, v.nonce[:], v.data[len(v.nonce):], nil)
+	decryptedData, err := aead.Open(nil, v.nonce[:], v.data, nil)
 	if err != nil {
 		return nil, ErrCouldNotDecrypt
 	}
@@ -290,7 +315,6 @@ func (v *Vault) encrypt(creds map[string]*Credential) error {
 		return err
 	}
 	v.data = aead.Seal(nil, v.nonce[:], buf.Bytes(), nil)
-	v.data = append(v.nonce[:], v.data...)
 
 	return nil
 }
@@ -335,15 +359,18 @@ func (v *Vault) Save(filename string) error {
 	}
 	defer tempfile.Close()
 
-	_, err = tempfile.Write(v.salt[:])
+	vf := vaultFile{
+		Nonce:       v.nonce,
+		Salt:        v.salt,
+		ArgonTime:   v.argonTime,
+		ArgonMemory: v.argonMemory,
+		ArgonLanes:  v.argonLanes,
+		Data:        v.data,
+	}
+	err = json.NewEncoder(tempfile).Encode(&vf)
 	if err != nil {
 		return err
 	}
-	_, err = tempfile.Write(v.data)
-	if err != nil {
-		return err
-	}
-
 	err = tempfile.Sync()
 	if err != nil {
 		return err
@@ -625,7 +652,7 @@ func (v *Vault) ChangePassphrase(newpassphrase string) error {
 	}
 
 	var secret [32]byte
-	skb := argon2.IDKey([]byte(newpassphrase), salt[:], argonTime, argonMemory, uint8(runtime.NumCPU()), keyLen)
+	skb := argon2.IDKey([]byte(newpassphrase), salt[:], v.argonTime, v.argonMemory, v.argonLanes, keyLen)
 	subtle.ConstantTimeCopy(1, secret[:], skb)
 
 	v.nonce = nonce
