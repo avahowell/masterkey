@@ -13,20 +13,26 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strings"
 
 	"github.com/avahowell/masterkey/filelock"
 	"github.com/avahowell/masterkey/pwgen"
 
-	"golang.org/x/crypto/nacl/secretbox"
+	"golang.org/x/crypto/argon2"
 	"golang.org/x/crypto/scrypt"
+
+	"golang.org/x/crypto/chacha20poly1305"
+	"golang.org/x/crypto/nacl/secretbox"
 )
 
 const (
 	scryptN        = 16384
 	scryptR        = 8
 	scryptP        = 1
+	argonTime      = 4
+	argonMemory    = 64 * 64 * 512
 	keyLen         = 32
 	genPasswordLen = 32
 )
@@ -36,7 +42,7 @@ var (
 	// credential does not exist
 	ErrNoSuchCredential = errors.New("credential at specified location does not exist in vault")
 
-	// ErrCouldNotDecrypt is returned if secretbox decryption fails.
+	// ErrCouldNotDecrypt is returned if decryption fails.
 	ErrCouldNotDecrypt = errors.New("provided decryption key is incorrect or the provided vault is corrupt")
 
 	// ErrCredentialExists is returned from Add if a credential already exists
@@ -54,7 +60,7 @@ var (
 type (
 	// Vault is a secure password vault. It can be created by calling New()
 	// with a passphrase. Passwords, usernames, and locations are encrypted
-	// using nacl/secretbox.
+	// using xchacha20 and authenticated with poly1305..
 	Vault struct {
 		data   []byte
 		nonce  [24]byte
@@ -85,11 +91,8 @@ func New(passphrase string) (*Vault, error) {
 	}
 
 	var secret [32]byte
-	key, err := scrypt.Key([]byte(passphrase), salt[:], scryptN, scryptR, scryptP, keyLen)
-	if err != nil {
-		panic(err)
-	}
-	subtle.ConstantTimeCopy(1, secret[:], key)
+	skb := argon2.IDKey([]byte(passphrase), salt[:], argonTime, argonMemory, uint8(runtime.NumCPU()), keyLen)
+	subtle.ConstantTimeCopy(1, secret[:], skb)
 
 	v := &Vault{
 		nonce:  nonce,
@@ -97,7 +100,7 @@ func New(passphrase string) (*Vault, error) {
 		secret: secret,
 	}
 
-	err = v.encrypt(make(map[string]*Credential))
+	err := v.encrypt(make(map[string]*Credential))
 	if err != nil {
 		return nil, err
 	}
@@ -106,57 +109,8 @@ func New(passphrase string) (*Vault, error) {
 }
 
 // openVaultCompat opens an on-disk vault, using the legacy format
-// (nonce:data).
+// (NACL/Secretbox, scrypt)
 func openVaultCompat(filename, passphrase string) (*Vault, error) {
-	bs, err := ioutil.ReadFile(filename)
-	if err != nil {
-		return nil, err
-	}
-
-	var nonce [24]byte
-	subtle.ConstantTimeCopy(1, nonce[:], bs[:24])
-
-	key, err := scrypt.Key([]byte(passphrase), nonce[:], scryptN, scryptR, scryptP, keyLen)
-	if err != nil {
-		return nil, err
-	}
-
-	var secret [32]byte
-	subtle.ConstantTimeCopy(1, secret[:], key)
-
-	vault := &Vault{
-		data:   bs,
-		nonce:  nonce,
-		secret: secret,
-	}
-
-	creds, err := vault.decrypt()
-	if err != nil {
-		return nil, err
-	}
-
-	if _, err = io.ReadFull(rand.Reader, vault.nonce[:]); err != nil {
-		panic(err)
-	}
-	if _, err = io.ReadFull(rand.Reader, vault.salt[:]); err != nil {
-		panic(err)
-	}
-
-	key, err = scrypt.Key([]byte(passphrase), vault.salt[:], scryptN, scryptR, scryptP, keyLen)
-	if err != nil {
-		return nil, err
-	}
-	subtle.ConstantTimeCopy(1, vault.secret[:], key)
-
-	if err = vault.encrypt(creds); err != nil {
-		return nil, err
-	}
-
-	return vault, nil
-}
-
-// openVault opens an on-disk vault using the current format (salt:nonce:data).
-func openVault(filename, passphrase string) (*Vault, error) {
 	bs, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return nil, err
@@ -173,6 +127,48 @@ func openVault(filename, passphrase string) (*Vault, error) {
 
 	var secret [32]byte
 	subtle.ConstantTimeCopy(1, secret[:], key)
+
+	decryptedBytes, success := secretbox.Open(nil, bs[48:], &nonce, &secret)
+	if !success {
+		return nil, ErrCouldNotDecrypt
+	}
+
+	credentials := make(map[string]*Credential)
+	err = gob.NewDecoder(bytes.NewBuffer(decryptedBytes)).Decode(&credentials)
+	if err != nil {
+		return nil, err
+	}
+
+	v := &Vault{
+		salt:   salt,
+		secret: secret,
+	}
+
+	skb := argon2.IDKey([]byte(passphrase), salt[:], argonTime, argonMemory, uint8(runtime.NumCPU()), keyLen)
+	subtle.ConstantTimeCopy(1, v.secret[:], skb)
+
+	err = v.encrypt(credentials)
+	if err != nil {
+		return nil, err
+	}
+
+	return v, nil
+}
+
+// openVault opens an on-disk vault using the current format (salt:nonce:data).
+func openVault(filename, passphrase string) (*Vault, error) {
+	bs, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
+
+	var salt, nonce [24]byte
+	subtle.ConstantTimeCopy(1, salt[:], bs[:24])
+	subtle.ConstantTimeCopy(1, nonce[:], bs[24:48])
+
+	skb := argon2.IDKey([]byte(passphrase), salt[:], argonTime, argonMemory, uint8(runtime.NumCPU()), keyLen)
+	var secret [32]byte
+	subtle.ConstantTimeCopy(1, secret[:], skb)
 
 	vault := &Vault{
 		data:   bs[len(salt):],
@@ -195,11 +191,8 @@ func openVault(filename, passphrase string) (*Vault, error) {
 		panic(err)
 	}
 
-	key, err = scrypt.Key([]byte(passphrase), vault.salt[:], scryptN, scryptR, scryptP, keyLen)
-	if err != nil {
-		return nil, err
-	}
-	subtle.ConstantTimeCopy(1, vault.secret[:], key)
+	skb = argon2.IDKey([]byte(passphrase), vault.salt[:], argonTime, argonMemory, uint8(runtime.NumCPU()), keyLen)
+	subtle.ConstantTimeCopy(1, vault.secret[:], skb)
 
 	err = vault.encrypt(creds)
 	if err != nil {
@@ -263,13 +256,17 @@ func (v *Vault) Generate(location string, username string) error {
 // decrypt decrypts the vault and returns the credential data as a map of
 // strings (locations) to Credentials.
 func (v *Vault) decrypt() (map[string]*Credential, error) {
-	decryptedData, success := secretbox.Open([]byte{}, v.data[len(v.nonce):], &v.nonce, &v.secret)
-	if !success {
+	aead, err := chacha20poly1305.NewX(v.secret[:])
+	if err != nil {
+		return nil, err
+	}
+	decryptedData, err := aead.Open(nil, v.nonce[:], v.data[len(v.nonce):], nil)
+	if err != nil {
 		return nil, ErrCouldNotDecrypt
 	}
 
 	credentials := make(map[string]*Credential)
-	err := gob.NewDecoder(bytes.NewBuffer(decryptedData)).Decode(&credentials)
+	err = gob.NewDecoder(bytes.NewBuffer(decryptedData)).Decode(&credentials)
 	if err != nil {
 		return nil, err
 	}
@@ -288,8 +285,12 @@ func (v *Vault) encrypt(creds map[string]*Credential) error {
 	if _, err = io.ReadFull(rand.Reader, v.nonce[:]); err != nil {
 		panic(err)
 	}
-
-	v.data = secretbox.Seal(v.nonce[:], buf.Bytes(), &v.nonce, &v.secret)
+	aead, err := chacha20poly1305.NewX(v.secret[:])
+	if err != nil {
+		return err
+	}
+	v.data = aead.Seal(nil, v.nonce[:], buf.Bytes(), nil)
+	v.data = append(v.nonce[:], v.data...)
 
 	return nil
 }
@@ -624,11 +625,8 @@ func (v *Vault) ChangePassphrase(newpassphrase string) error {
 	}
 
 	var secret [32]byte
-	key, err := scrypt.Key([]byte(newpassphrase), salt[:], scryptN, scryptR, scryptP, keyLen)
-	if err != nil {
-		panic(err)
-	}
-	subtle.ConstantTimeCopy(1, secret[:], key)
+	skb := argon2.IDKey([]byte(newpassphrase), salt[:], argonTime, argonMemory, uint8(runtime.NumCPU()), keyLen)
+	subtle.ConstantTimeCopy(1, secret[:], skb)
 
 	v.nonce = nonce
 	v.secret = secret
