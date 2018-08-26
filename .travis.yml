@@ -1,4 +1,6 @@
 language: go
+sudo: required
+dist: precise
 
 notifications:
    email: false
@@ -7,12 +9,9 @@ before_install:
   - export DISPLAY=:99.0
   - sh -e /etc/init.d/xvfb start
 
-os:
-  - linux
-
 go:
-  - 1.7
+  - 1.11
 
 script: 
   - sudo apt-get install xsel
-  - go test -v -short ./... 
+  - go test -v -short ./... -parallel 1
