@@ -14,4 +14,4 @@ go:
 
 script: 
   - sudo apt-get install xsel
-  - go test -v -short ./... -parallel 1
+  - go test -v ./... -short -race

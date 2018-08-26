@@ -8,6 +8,7 @@ import (
 	"encoding/gob"
 	"encoding/json"
 	"errors"
+	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -29,13 +30,21 @@ import (
 )
 
 const (
-	scryptN            = 16384
-	scryptR            = 8
-	scryptP            = 1
-	defaultArgonTime   = 3
-	defaultArgonMemory = 2e6 // argonMemory is in kilobibites, this equates to 2GB
-	keyLen             = 32
-	genPasswordLen     = 32
+	scryptN          = 16384
+	scryptR          = 8
+	scryptP          = 1
+	defaultArgonTime = 3
+	keyLen           = 32
+	genPasswordLen   = 32
+)
+
+var (
+	defaultArgonMemory = func() uint32 {
+		if flag.Lookup("test.v") != nil { // testing
+			return 1e4
+		}
+		return 2e6
+	}()
 )
 
 var (
