@@ -328,6 +328,16 @@ func (m *masterkeyUI) inputHandler(inputKey string) error {
 		if m.selectedIdx < len(m.locations)-1 {
 			m.selectedIdx++
 		}
+	} else if inputKey == "C-f" {
+		m.selectedIdx += m.list.Height - 1
+		if m.selectedIdx > len(m.locations)-1 {
+			m.selectedIdx = len(m.locations) - 1
+		}
+	} else if inputKey == "C-b" {
+		m.selectedIdx -= m.list.Height - 1
+		if m.selectedIdx < 0 {
+			m.selectedIdx = 0
+		}
 	} else if inputKey == "n" { // next search item
 		if len(m.searchMatches) > 0 {
 			m.searchIdx = (m.searchIdx + 1) % len(m.searchMatches)

@@ -202,20 +202,15 @@ func openVault(filename, passphrase string) (*Vault, error) {
 		argonLanes:  vf.ArgonLanes,
 	}
 
+	// rotate the salt on open
 	creds, err := vault.decrypt()
 	if err != nil {
 		return nil, err
-	}
-
-	_, err = io.ReadFull(rand.Reader, vault.nonce[:])
-	if err != nil {
-		panic(err)
 	}
 	_, err = io.ReadFull(rand.Reader, vault.salt[:])
 	if err != nil {
 		panic(err)
 	}
-
 	skb = argon2.IDKey([]byte(passphrase), vault.salt[:], vault.argonTime, vault.argonMemory, vault.argonLanes, keyLen)
 	subtle.ConstantTimeCopy(1, vault.secret[:], skb)
 
